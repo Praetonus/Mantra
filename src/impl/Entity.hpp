@@ -113,8 +113,10 @@ class Entity
 	void destroy()
 	{
 		assert(exists_ && "Entity doesn't exists");
-	
+#ifndef NDEBUG	
 		invalidate_handles();
+#endif
+
 		auto it = std::begin(comps_idx_);
 		(void)expand
 		{(
@@ -158,11 +160,12 @@ class Entity
 	void add_components()
 	{
 		assert(exists_ && "Entity doesn't exists");
-		
+#ifndef NDEBUG	
 		(void)expand
 		{(
 			assert((comps_idx_[TypeToIndex<0, Ts, C...>::value] == -1) && "Entity already has this component"), 0
 		)...};
+#endif
 		
 		(void)expand
 		{(
@@ -174,11 +177,12 @@ class Entity
 	void remove_components()
 	{
 		assert(exists_ && "Entity doesn't exists");
-		
+#ifndef NDEBUG
 		(void)expand
 		{(
 			assert((comps_idx_[TypeToIndex<0, Ts, C...>::value] != -1) && "Entity doesn't have this component"), 0
 		)...};
+#endif
 		
 		(void)expand
 		{(

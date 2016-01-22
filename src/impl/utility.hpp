@@ -30,8 +30,8 @@
  * knowledge of the CeCILL-B license and that you accept its terms.
  *****/
 
-#ifndef MANTRA_UTILITY_HPP
-#define MANTRA_UTILITY_HPP
+#ifndef MANTRA_IMPL_UTILITY_HPP
+#define MANTRA_IMPL_UTILITY_HPP
 
 #include <cassert>
 #include <cstdint>
@@ -150,6 +150,19 @@ class Optional
 	uint8_t storage_[sizeof(T)];
 	bool exists_;
 };
+
+template <typename F, typename T, std::size_t... I>
+decltype(auto) invoke_helper(F&& f, T&& t, std::index_sequence<I...>)
+{
+	return f(std::get<I>(std::forward<T>(t))...);
+}
+
+template <typename F, typename T>
+decltype(auto) invoke(F&& f, T&& t)
+{
+	auto constexpr S = std::tuple_size<typename std::decay<T>::type>::value;
+	return invoke_helper(std::forward<F>(f), std::forward<T>(t), std::make_index_sequence<S>{});
+}
 
 } // namespace impl
 

@@ -78,6 +78,9 @@ class World<CL<C...>, SL<S...>>
 	template <typename... Ts>
 	EntityHandle<C...> create_entity();
 
+	template <typename... Ts, typename Tuple>
+	EntityHandle<C...> create_entity(Tuple&&);
+
 	private:
 	std::vector<impl::Entity<C...>> entities_;
 	std::tuple<std::vector<impl::Optional<C>>...> components_;

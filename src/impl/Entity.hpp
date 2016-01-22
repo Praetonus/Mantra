@@ -35,8 +35,8 @@
 
 #include <array>
 #include <cassert>
+#include <functional>
 #include <vector>
-#include <typeinfo>
 
 #include "utility.hpp"
 
@@ -64,8 +64,12 @@ class Entity
 	template <typename T>
 	using CompVec = std::vector<Optional<T>>;
 
+	template <std::size_t I, typename T, typename... Cs>
+	struct TypeToIndex : std::integral_constant<std::size_t, 0>
+	{};
+
 	template <std::size_t I, typename T, typename U, typename... Cs>
-	struct TypeToIndex : std::integral_constant<std::size_t, TypeToIndex<I+1, T, Cs...>::value>
+	struct TypeToIndex<I, T, U, Cs...> : std::integral_constant<std::size_t, TypeToIndex<I+1, T, Cs...>::value>
 	{};
 
 	template <std::size_t I, typename T, typename... Cs>
@@ -73,12 +77,14 @@ class Entity
 	{};
 
 	public:
-	Entity(Comps& comps) : comps_{comps}, comps_idx_{{-1}},
+	Entity(Comps& comps) : comps_{comps}, comps_idx_{},
 #ifndef NDEBUG
 	handles_{},
 #endif // NDEBUG
 	exists_{false}
-	{}
+	{
+		comps_idx_.fill(-1);
+	}
 
 	Entity(Entity const&) = delete;
 	Entity& operator=(Entity const&) = delete;
@@ -99,14 +105,25 @@ class Entity
 	}
 
 	template <typename... Ts>
-	void create(TypeList<Ts...>)
+	void create(TypeList<Ts...> types)
 	{
 		assert(!exists_ && "Entity already exists");
 		
 		(void)expand
 		{(
-			assign_comp_<C>(std::get<CompVec<C>>(comps_), is_any<C, Ts...>::value), 0
+			assign_comp_(std::get<CompVec<Ts>>(comps_), std::tuple<>{}, types)
+			, 0
 		)...};
+		exists_ = true;
+	}
+
+	template <typename Tuple, typename... Ts>
+	void create(Tuple&& args, TypeList<Ts...> types)
+	{
+		assert(!exists_ && "Entity already exists");
+	
+		auto constexpr S = std::tuple_size<Tuple>::value;
+		assign_comp_helper_(std::forward<Tuple>(args), types, std::make_index_sequence<S>{});
 		exists_ = true;
 	}
 
@@ -123,6 +140,7 @@ class Entity
 			*it != -1 ? std::get<CompVec<C>>(comps_)[static_cast<std::size_t>(*it++)].destroy()
 			          : (void)++it, 0
 		)...};
+		std::fill(std::begin(comps_idx_), std::end(comps_idx_), -1);
 		exists_ = false;
 	}
 
@@ -166,11 +184,26 @@ class Entity
 			assert((comps_idx_[TypeToIndex<0, Ts, C...>::value] == -1) && "Entity already has this component"), 0
 		)...};
 #endif
-		
 		(void)expand
 		{(
-			assign_comp_<Ts>(std::get<CompVec<Ts>>(comps_), true), 0
+			assign_comp_(std::get<CompVec<Ts>>(comps_), std::tuple<>{}, TypeList<Ts...>{})
+			, 0
 		)...};
+	}
+
+	template <typename... Ts, typename Tuple>
+	void add_components(Tuple&& args)
+	{
+		assert(exists_ && "Entity doesn't exists");
+#ifndef NDEBUG	
+		(void)expand
+		{(
+			assert((comps_idx_[TypeToIndex<0, Ts, C...>::value] == -1) && "Entity already has this component"), 0
+		)...};
+#endif
+	
+		auto constexpr S = std::tuple_size<Tuple>::value;
+		assign_comp_helper_(std::forward<Tuple>(args), TypeList<Ts...>{}, std::make_index_sequence<S>{});
 	}
 
 	template <typename... Ts>
@@ -212,23 +245,29 @@ class Entity
 #endif // NDEBUG
 
 	private:
-	template <typename T>
-	void assign_comp_(std::vector<Optional<T>>& comps, bool assign)
+	template <typename Tuple, typename... Ts, std::size_t... I>
+	void assign_comp_helper_(Tuple&& args, TypeList<Ts...> types, std::index_sequence<I...>)
 	{
-		if (assign)
+		(void)expand
+		{(
+			assign_comp_(std::get<CompVec<Ts>>(comps_), std::get<I>(args), types)
+			, 0
+		)...};
+	}
+
+	template <typename T, typename Tuple, typename... Ts>
+	void assign_comp_(std::vector<Optional<T>>& comps, Tuple&& args, TypeList<Ts...>)
+	{
+		auto it = std::find_if(std::begin(comps), std::end(comps),
+		                       [](auto const& e){return !e;});
+		if (it == std::end(comps))
 		{
-			auto it = std::find_if(std::begin(comps), std::end(comps),
-			                       [](auto const& e){return !e;});
-			if (it == std::end(comps))
-			{
-				comps.emplace_back();
-				it = std::end(comps) - 1;
-			}
-			it->construct();
-			comps_idx_[TypeToIndex<0, T, C...>::value] = std::distance(std::begin(comps), it);
+			comps.emplace_back();
+			it = std::end(comps) - 1;
 		}
-		else
-			comps_idx_[TypeToIndex<0, T, C...>::value] = -1;
+		invoke([it](auto&&... a){it->construct(std::forward<decltype(a)>(a)...);},
+		       std::forward<Tuple>(args));
+		comps_idx_[TypeToIndex<0, T, C...>::value] = std::distance(std::begin(comps), it);
 	}
 
 	Comps& comps_;

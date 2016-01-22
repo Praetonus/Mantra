@@ -130,6 +130,19 @@ void EntityHandle<C...>::add_components()
 }
 
 template <typename... C>
+template <typename... Ts, typename Tuple>
+void EntityHandle<C...>::add_components(Tuple&& args)
+{
+	(void)impl::expand{([]
+	{
+		static_assert(impl::is_any<Ts, C...>::value, "Component not found");
+	}(), 0)...};
+	assert(valid_ && "Entity isn't valid");
+
+	entities_[index_].template add_components<Ts...>(std::forward<Tuple>(args));
+}
+
+template <typename... C>
 template <typename... Ts>
 void EntityHandle<C...>::remove_components()
 {

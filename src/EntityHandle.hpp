@@ -72,6 +72,9 @@ class EntityHandle
 	template <typename... Ts>
 	void add_components();
 
+	template <typename... Ts, typename Tuple>
+	void add_components(Tuple&&);
+
 	template <typename... Ts>
 	void remove_components();
 

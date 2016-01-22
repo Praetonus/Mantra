@@ -63,6 +63,15 @@ class Entity
 	using Comps = std::tuple<std::vector<Optional<C>>...>;
 	template <typename T>
 	using CompVec = std::vector<Optional<T>>;
+
+	template <std::size_t I, typename T, typename U, typename... Cs>
+	struct TypeToIndex : std::integral_constant<std::size_t, TypeToIndex<I+1, T, Cs...>::value>
+	{};
+
+	template <std::size_t I, typename T, typename... Cs>
+	struct TypeToIndex<I, T, T, Cs...> : std::integral_constant<std::size_t, I>
+	{};
+
 	public:
 	Entity(Comps& comps) : comps_{comps}, comps_idx_{{-1}},
 #ifndef NDEBUG
@@ -124,6 +133,26 @@ class Entity
 	{
 		return !exists_;
 	}
+
+	template <typename T>
+	T& get_component() noexcept
+	{
+		auto idx = comps_idx_[TypeToIndex<0, T, C...>::value];
+		assert(exists_ && "Entity doesn't exists");
+		assert((idx != -1) && "Entity doesn't have this component");
+		
+		return *std::get<CompVec<T>>(comps_)[static_cast<std::size_t>(idx)].get();
+	}
+	
+	template <typename T>
+	T const& get_component() const noexcept
+	{
+		auto idx = comps_idx_[TypeToIndex<0, T, C...>::value];
+		assert(exists_ && "Entity doesn't exists");
+		assert((idx != -1) && "Entity doesn't have this component");
+
+		return *std::get<CompVec<T>>(comps_)[static_cast<std::size_t>(idx)].get();
+	}
 	
 #ifndef NDEBUG
 	void add_handle(EntityHandle<C...>* handle)
@@ -145,14 +174,6 @@ class Entity
 #endif // NDEBUG
 
 	private:
-	template <std::size_t I, typename T, typename U, typename... Cs>
-	struct TypeToIndex : std::integral_constant<std::size_t, TypeToIndex<I+1, T, Cs...>::value>
-	{};
-
-	template <std::size_t I, typename T, typename... Cs>
-	struct TypeToIndex<I, T, T, Cs...> : std::integral_constant<std::size_t, I>
-	{};
-
 	template <typename T>
 	void assign_comp_(std::vector<Optional<T>>& comps, bool assign)
 	{

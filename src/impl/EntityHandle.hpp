@@ -96,6 +96,26 @@ void EntityHandle<C...>::destroy()
 	entities_[index_].destroy();
 }
 
+template <typename... C>
+template <typename T>
+T& EntityHandle<C...>::get_component() noexcept
+{
+	static_assert(impl::is_any<T, C...>::value, "Component not found");
+	assert(valid_ && "Entity isn't valid");
+
+	return entities_[index_].template get_component<T>();
+}
+
+template <typename... C>
+template <typename T>
+T const& EntityHandle<C...>::get_component() const noexcept
+{
+	static_assert(impl::is_any<T, C...>::value, "Component not found");
+	assert(valid_ && "Entity isn't valid");
+
+	return entities_[index_].template get_component<T>();
+}
+
 } // namespace mantra
 
 #endif // Header guard

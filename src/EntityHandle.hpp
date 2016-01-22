@@ -63,6 +63,12 @@ class EntityHandle
 
 	void destroy();
 
+	template <typename T>
+	T& get_component() noexcept;
+
+	template <typename T>
+	T const& get_component() const noexcept;
+
 	template <typename... CC>
 	friend bool operator==(mantra::EntityHandle<CC...> const&, mantra::EntityHandle<CC...> const&);
 

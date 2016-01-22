@@ -71,8 +71,8 @@ EntityHandle<C...> World<CL<C...>, SL<S...>>::create_entity()
 }
 
 template <typename... C, typename... S>
-template <typename... Ts, typename Tuple>
-EntityHandle<C...> World<CL<C...>, SL<S...>>::create_entity(Tuple&& args)
+template <typename... Ts, typename... Args>
+EntityHandle<C...> World<CL<C...>, SL<S...>>::create_entity(Args&&... args)
 {
 	impl::TypeList<Ts...> comp_types{};
 	validate_type_list_(comp_types);
@@ -84,7 +84,7 @@ EntityHandle<C...> World<CL<C...>, SL<S...>>::create_entity(Tuple&& args)
 		entities_.emplace_back(components_);
 		it = std::end(entities_) - 1;
 	}
-	it->create(std::forward<Tuple>(args), comp_types);
+	it->create(comp_types, std::forward<Args>(args)...);
 	return EntityHandle<C...>{entities_, static_cast<std::size_t>(std::distance(std::begin(entities_), it))};
 }
 

@@ -130,8 +130,8 @@ void EntityHandle<C...>::add_components()
 }
 
 template <typename... C>
-template <typename... Ts, typename Tuple>
-void EntityHandle<C...>::add_components(Tuple&& args)
+template <typename... Ts, typename... Args>
+void EntityHandle<C...>::add_components(Args&&... args)
 {
 	(void)impl::expand{([]
 	{
@@ -139,7 +139,7 @@ void EntityHandle<C...>::add_components(Tuple&& args)
 	}(), 0)...};
 	assert(valid_ && "Entity isn't valid");
 
-	entities_[index_].template add_components<Ts...>(std::forward<Tuple>(args));
+	entities_[index_].template add_components<Ts...>(std::forward<Args>(args)...);
 }
 
 template <typename... C>

@@ -78,8 +78,8 @@ class World<CL<C...>, SL<S...>>
 	template <typename... Ts>
 	EntityHandle<C...> create_entity();
 
-	template <typename... Ts, typename Tuple>
-	EntityHandle<C...> create_entity(Tuple&&);
+	template <typename... Ts, typename... Args>
+	EntityHandle<C...> create_entity(Args&&...);
 
 	private:
 	std::vector<impl::Entity<C...>> entities_;

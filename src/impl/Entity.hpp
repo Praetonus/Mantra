@@ -117,13 +117,15 @@ class Entity
 		exists_ = true;
 	}
 
-	template <typename Tuple, typename... Ts>
-	void create(Tuple&& args, TypeList<Ts...> types)
+	template <typename... Ts, typename... Args>
+	void create(TypeList<Ts...> types, Args&&... args)
 	{
 		assert(!exists_ && "Entity already exists");
 	
-		auto constexpr S = std::tuple_size<Tuple>::value;
-		assign_comp_helper_(std::forward<Tuple>(args), types, std::make_index_sequence<S>{});
+		(void)expand
+		{(
+			assign_comp_(std::get<CompVec<Ts>>(comps_), std::forward<Args>(args), types), 0
+		)...};
 		exists_ = true;
 	}
 
@@ -191,8 +193,8 @@ class Entity
 		)...};
 	}
 
-	template <typename... Ts, typename Tuple>
-	void add_components(Tuple&& args)
+	template <typename... Ts, typename... Args>
+	void add_components(Args&&... args)
 	{
 		assert(exists_ && "Entity doesn't exists");
 #ifndef NDEBUG	
@@ -201,9 +203,11 @@ class Entity
 			assert((comps_idx_[TypeToIndex<0, Ts, C...>::value] == -1) && "Entity already has this component"), 0
 		)...};
 #endif
-	
-		auto constexpr S = std::tuple_size<Tuple>::value;
-		assign_comp_helper_(std::forward<Tuple>(args), TypeList<Ts...>{}, std::make_index_sequence<S>{});
+		
+		(void)expand
+		{(
+			assign_comp_(std::get<CompVec<Ts>>(comps_), std::forward<Args>(args), TypeList<Ts...>{}), 0
+		)...};
 	}
 
 	template <typename... Ts>
@@ -245,16 +249,6 @@ class Entity
 #endif // NDEBUG
 
 	private:
-	template <typename Tuple, typename... Ts, std::size_t... I>
-	void assign_comp_helper_(Tuple&& args, TypeList<Ts...> types, std::index_sequence<I...>)
-	{
-		(void)expand
-		{(
-			assign_comp_(std::get<CompVec<Ts>>(comps_), std::get<I>(args), types)
-			, 0
-		)...};
-	}
-
 	template <typename T, typename Tuple, typename... Ts>
 	void assign_comp_(std::vector<Optional<T>>& comps, Tuple&& args, TypeList<Ts...>)
 	{

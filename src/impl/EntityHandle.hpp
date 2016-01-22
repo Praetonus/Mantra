@@ -116,6 +116,33 @@ T const& EntityHandle<C...>::get_component() const noexcept
 	return entities_[index_].template get_component<T>();
 }
 
+template <typename... C>
+template <typename... Ts>
+void EntityHandle<C...>::add_components()
+{
+	(void)impl::expand{([]
+	{
+		static_assert(impl::is_any<Ts, C...>::value, "Component not found");
+	}(), 0)...};
+	assert(valid_ && "Entity isn't valid");
+
+	entities_[index_].template add_components<Ts...>();
+}
+
+template <typename... C>
+template <typename... Ts>
+void EntityHandle<C...>::remove_components()
+{
+	(void)impl::expand{([]
+	{
+		static_assert(impl::is_any<Ts, C...>::value, "Component not found");
+	}(), 0)...};
+	assert(valid_ && "Entity isn't valid");
+
+	entities_[index_].template remove_components<Ts...>();
+}
+
+
 } // namespace mantra
 
 #endif // Header guard

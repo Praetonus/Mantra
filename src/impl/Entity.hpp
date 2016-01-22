@@ -153,6 +153,40 @@ class Entity
 
 		return *std::get<CompVec<T>>(comps_)[static_cast<std::size_t>(idx)].get();
 	}
+
+	template <typename... Ts>
+	void add_components()
+	{
+		assert(exists_ && "Entity doesn't exists");
+		
+		(void)expand
+		{(
+			assert((comps_idx_[TypeToIndex<0, Ts, C...>::value] == -1) && "Entity already has this component"), 0
+		)...};
+		
+		(void)expand
+		{(
+			assign_comp_<Ts>(std::get<CompVec<Ts>>(comps_), true), 0
+		)...};
+	}
+
+	template <typename... Ts>
+	void remove_components()
+	{
+		assert(exists_ && "Entity doesn't exists");
+		
+		(void)expand
+		{(
+			assert((comps_idx_[TypeToIndex<0, Ts, C...>::value] != -1) && "Entity doesn't have this component"), 0
+		)...};
+		
+		(void)expand
+		{(
+			std::get<CompVec<Ts>>(comps_)
+				[static_cast<std::size_t>(comps_idx_[TypeToIndex<0, Ts, C...>::value])].destroy(),
+			comps_idx_[TypeToIndex<0, Ts, C...>::value] = -1, 0
+		)...};
+	}
 	
 #ifndef NDEBUG
 	void add_handle(EntityHandle<C...>* handle)

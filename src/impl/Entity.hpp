@@ -176,6 +176,18 @@ class Entity
 		return *std::get<CompVec<T>>(comps_)[static_cast<std::size_t>(idx)].get();
 	}
 
+	template <typename T, typename... Args>
+	void add_component(Args&&... args)
+	{
+		assert(exists_ && "Entity doesn't exists");
+#ifndef NDEBUG	
+		assert((comps_idx_[TypeToIndex<0, T, C...>::value] == -1) && "Entity already has this component");
+#endif
+		
+		assign_comp_(std::get<CompVec<T>>(comps_), std::forward_as_tuple(std::forward<Args>(args)...),
+		             TypeList<T>{});
+	}
+
 	template <typename... Ts>
 	void add_components()
 	{

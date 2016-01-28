@@ -82,7 +82,7 @@ EntityHandle<C...>::~EntityHandle()
 }
 
 template <typename... C>
-void EntityHandle<C...>::invalidate_(impl::EntityKey)
+void EntityHandle<C...>::invalidate_(impl::EntityKey) noexcept
 {
 	valid_ = false;
 }

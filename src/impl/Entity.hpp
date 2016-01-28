@@ -38,6 +38,8 @@
 #include <functional>
 #include <vector>
 
+#include <boost/optional.hpp>
+
 #include "utility.hpp"
 
 namespace mantra
@@ -60,9 +62,9 @@ class EntityKey
 template <typename... C>
 class Entity
 {
-	using Comps = std::tuple<std::vector<Optional<C>>...>;
+	using Comps = std::tuple<std::vector<boost::optional<C>>...>;
 	template <typename T>
-	using CompVec = std::vector<Optional<T>>;
+	using CompVec = std::vector<boost::optional<T>>;
 
 	template <std::size_t I, typename T, typename... Cs>
 	struct TypeToIndex : std::integral_constant<std::size_t, 0>
@@ -89,7 +91,7 @@ class Entity
 	Entity(Entity const&) = delete;
 	Entity& operator=(Entity const&) = delete;
 
-	Entity(Entity&& mv) : comps_{mv.comps_}, comps_idx_{std::move(mv.comps_idx_)},
+	Entity(Entity&& mv) noexcept : comps_{mv.comps_}, comps_idx_{std::move(mv.comps_idx_)},
 #ifndef NDEBUG
 	handles_{std::move(mv.handles_)},
 #endif // NDEBUG
@@ -139,7 +141,7 @@ class Entity
 		auto it = std::begin(comps_idx_);
 		(void)expand
 		{(
-			*it != -1 ? std::get<CompVec<C>>(comps_)[static_cast<std::size_t>(*it++)].destroy()
+			*it != -1 ? (void)(std::get<CompVec<C>>(comps_)[static_cast<std::size_t>(*it++)] = boost::none)
 			          : (void)++it, 0
 		)...};
 		std::fill(std::begin(comps_idx_), std::end(comps_idx_), -1);
@@ -163,7 +165,7 @@ class Entity
 		assert(exists_ && "Entity doesn't exists");
 		assert((idx != -1) && "Entity doesn't have this component");
 		
-		return *std::get<CompVec<T>>(comps_)[static_cast<std::size_t>(idx)].get();
+		return std::get<CompVec<T>>(comps_)[static_cast<std::size_t>(idx)].get();
 	}
 	
 	template <typename T>
@@ -173,7 +175,7 @@ class Entity
 		assert(exists_ && "Entity doesn't exists");
 		assert((idx != -1) && "Entity doesn't have this component");
 
-		return *std::get<CompVec<T>>(comps_)[static_cast<std::size_t>(idx)].get();
+		return std::get<CompVec<T>>(comps_)[static_cast<std::size_t>(idx)].get();
 	}
 
 	template <typename T, typename... Args>
@@ -236,7 +238,7 @@ class Entity
 		(void)expand
 		{(
 			std::get<CompVec<Ts>>(comps_)
-				[static_cast<std::size_t>(comps_idx_[TypeToIndex<0, Ts, C...>::value])].destroy(),
+				[static_cast<std::size_t>(comps_idx_[TypeToIndex<0, Ts, C...>::value])] = boost::none,
 			comps_idx_[TypeToIndex<0, Ts, C...>::value] = -1, 0
 		)...};
 	}
@@ -252,7 +254,7 @@ class Entity
 		handles_.erase(std::remove(std::begin(handles_), std::end(handles_), handle), std::end(handles_));
 	}
 
-	void invalidate_handles()
+	void invalidate_handles() noexcept
 	{
 		for (auto elem : handles_)
 			elem->invalidate_(EntityKey{});
@@ -262,7 +264,7 @@ class Entity
 
 	private:
 	template <typename T, typename Tuple, typename... Ts>
-	void assign_comp_(std::vector<Optional<T>>& comps, Tuple&& args, TypeList<Ts...>)
+	void assign_comp_(CompVec<T>& comps, Tuple&& args, TypeList<Ts...>)
 	{
 		auto it = std::find_if(std::begin(comps), std::end(comps),
 		                       [](auto const& e){return !e;});
@@ -271,7 +273,7 @@ class Entity
 			comps.emplace_back();
 			it = std::end(comps) - 1;
 		}
-		invoke([it](auto&&... a){it->construct(std::forward<decltype(a)>(a)...);},
+		invoke([it](auto&&... a){it->emplace(std::forward<decltype(a)>(a)...);},
 		       std::forward<Tuple>(args));
 		comps_idx_[TypeToIndex<0, T, C...>::value] = std::distance(std::begin(comps), it);
 	}

@@ -83,7 +83,7 @@ class World<CL<C...>, SL<S...>>
 
 	private:
 	std::vector<impl::Entity<C...>> entities_;
-	std::tuple<std::vector<impl::Optional<C>>...> components_;
+	std::tuple<std::vector<boost::optional<C>>...> components_;
 	std::tuple<S...> systems_;
 
 	template <typename... U>

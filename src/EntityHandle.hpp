@@ -50,7 +50,7 @@ class EntityHandle
 
 	~EntityHandle();
 	
-	void invalidate_(impl::EntityKey);
+	void invalidate_(impl::EntityKey) noexcept;
 #else
 	EntityHandle(EntityHandle const&) = default;
 	EntityHandle(EntityHandle&&) = default;
@@ -82,7 +82,7 @@ class EntityHandle
 	void remove_components();
 
 	template <typename... CC>
-	friend bool operator==(mantra::EntityHandle<CC...> const&, mantra::EntityHandle<CC...> const&);
+	friend bool operator==(mantra::EntityHandle<CC...> const&, mantra::EntityHandle<CC...> const&) noexcept;
 
 	private:
 	std::vector<impl::Entity<C...>>& entities_;
@@ -93,7 +93,7 @@ class EntityHandle
 };
 
 template <typename... C>
-bool operator==(mantra::EntityHandle<C...> const& l, mantra::EntityHandle<C...> const& r)
+bool operator==(mantra::EntityHandle<C...> const& l, mantra::EntityHandle<C...> const& r) noexcept
 {
 	assert(l.valid_ && r.valid_ && "Entities aren't valid");
 

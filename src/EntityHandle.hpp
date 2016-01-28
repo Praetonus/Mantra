@@ -69,6 +69,9 @@ class EntityHandle
 	template <typename T>
 	T const& get_component() const noexcept;
 
+	template <typename... Ts>
+	bool has_components() const noexcept;
+
 	template <typename T, typename... Args>
 	void add_component(Args&&...);
 

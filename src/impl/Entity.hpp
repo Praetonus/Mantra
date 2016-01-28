@@ -178,6 +178,18 @@ class Entity
 		return std::get<CompVec<T>>(comps_)[static_cast<std::size_t>(idx)].get();
 	}
 
+	template <typename... Ts>
+	bool has_components() const noexcept
+	{
+		
+		for (auto i : {TypeToIndex<0, Ts, C...>::value...})
+		{
+			if (comps_idx_[i] == -1)
+				return false;
+		}
+		return true;
+	}
+
 	template <typename T, typename... Args>
 	void add_component(Args&&... args)
 	{

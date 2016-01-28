@@ -117,6 +117,19 @@ T const& EntityHandle<C...>::get_component() const noexcept
 }
 
 template <typename... C>
+template <typename... Ts>
+bool EntityHandle<C...>::has_components() const noexcept
+{
+	(void)impl::expand{([]
+	{
+		static_assert(impl::is_any<Ts, C...>::value, "Component not found");
+	}(), 0)...};
+	assert(valid_ && "Entity isn't valid");
+
+	return entities_[index_].template has_components<Ts...>();
+}
+
+template <typename... C>
 template <typename T, typename... Args>
 void EntityHandle<C...>::add_component(Args&&... args)
 {

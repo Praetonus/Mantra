@@ -38,146 +38,115 @@
 namespace mantra
 {
 
-template <typename... C>
-EntityHandle<C...>::EntityHandle(std::vector<impl::Entity<C...>>& entities, std::size_t index)
-	: entities_{entities}, index_{index}
+template <typename P, typename... C>
+EntityHandle<P, C...>::EntityHandle(std::vector<impl::Entity<C...>>& entities, std::size_t index)
+	: 
 #ifndef NDEBUG
-, valid_{true}
-{
-	entities_[index_].add_handle(this);
-}
-#else
+	  impl::DebugHandle<C...>{entities, index},
+#endif
+	  entities_{entities}, index_{index}
 {}
-#endif // NDEBUG
 
-#ifndef NDEBUG
-template <typename... C>
-EntityHandle<C...>::EntityHandle(EntityHandle const& cp)
-	: entities_{cp.entities_}, index_{cp.index_}, valid_{cp.valid_}
+template <typename P, typename... C>
+void EntityHandle<P, C...>::destroy()
 {
-	if (valid_)
-		entities_[index_].add_handle(this);
-}
-
-template <typename... C>
-EntityHandle<C...>::EntityHandle(EntityHandle&& mv)
-	: entities_{mv.entities_}, index_{mv.index_}, valid_{mv.valid_}
-{
-	if (valid_)
-	{
-		entities_[index_].remove_handle(&mv);
-		mv.valid_ = false;
-		entities_[index_].add_handle(this);
-	}
-}
-
-template <typename... C>
-EntityHandle<C...>::~EntityHandle()
-{
-	if (valid_)
-	{
-		entities_[index_].remove_handle(this);
-		valid_ = false;
-	}
-}
-
-template <typename... C>
-void EntityHandle<C...>::invalidate_(impl::EntityKey) noexcept
-{
-	valid_ = false;
-}
-#endif // NDEBUG
-
-template <typename... C>
-void EntityHandle<C...>::destroy()
-{
-	assert(valid_ && "Entity isn't valid");
+	assert(this->valid_ && "Entity isn't valid");
 
 	entities_[index_].destroy();
 }
 
-template <typename... C>
+template <typename P, typename... C>
 template <typename T>
-T& EntityHandle<C...>::get_component() noexcept
+std::enable_if_t<impl::is_any<P, T, void>::value, T>& EntityHandle<P, C...>::get_component() noexcept
 {
 	static_assert(impl::is_any<T, C...>::value, "Component not found");
-	assert(valid_ && "Entity isn't valid");
+	assert(this->valid_ && "Entity isn't valid");
 
 	return entities_[index_].template get_component<T>();
 }
 
-template <typename... C>
+template <typename P, typename... C>
 template <typename T>
-T const& EntityHandle<C...>::get_component() const noexcept
+std::enable_if_t<!std::is_pointer<T>::value, T> const& EntityHandle<P, C...>::get_component() const noexcept
 {
 	static_assert(impl::is_any<T, C...>::value, "Component not found");
-	assert(valid_ && "Entity isn't valid");
+	assert(this->valid_ && "Entity isn't valid");
 
 	return entities_[index_].template get_component<T>();
 }
 
-template <typename... C>
+template <typename P, typename... C>
+template <typename T>
+std::enable_if_t<std::is_pointer<T>::value, std::remove_pointer_t<T>> const* const&
+	EntityHandle<P, C...>::get_component() const noexcept
+{
+	static_assert(impl::is_any<T, C...>::value, "Component not found");
+	assert(this->valid_ && "Entity isn't valid");
+
+	return entities_[index_].template get_pointer<T>();
+}
+
+template <typename P, typename... C>
 template <typename... Ts>
-bool EntityHandle<C...>::has_components() const noexcept
+bool EntityHandle<P, C...>::has_components() const noexcept
 {
 	(void)impl::expand{([]
 	{
 		static_assert(impl::is_any<Ts, C...>::value, "Component not found");
 	}(), 0)...};
-	assert(valid_ && "Entity isn't valid");
+	assert(this->valid_ && "Entity isn't valid");
 
 	return entities_[index_].template has_components<Ts...>();
 }
 
-template <typename... C>
+template <typename P, typename... C>
 template <typename T, typename... Args>
-void EntityHandle<C...>::add_component(Args&&... args)
+void EntityHandle<P, C...>::add_component(Args&&... args)
 {
 	static_assert(impl::is_any<T, C...>::value, "Component not found");
-	assert(valid_ && "Entity isn't valid");
+	assert(this->valid_ && "Entity isn't valid");
 
 	return entities_[index_].template add_component<T>(std::forward<Args>(args)...);
 }
 
-template <typename... C>
+template <typename P, typename... C>
 template <typename... Ts>
-void EntityHandle<C...>::add_components()
+void EntityHandle<P, C...>::add_components()
 {
 	(void)impl::expand{([]
 	{
 		static_assert(impl::is_any<Ts, C...>::value, "Component not found");
 	}(), 0)...};
-	assert(valid_ && "Entity isn't valid");
+	assert(this->valid_ && "Entity isn't valid");
 
 	entities_[index_].template add_components<Ts...>();
 }
 
-template <typename... C>
+template <typename P, typename... C>
 template <typename... Ts, typename... Args>
-void EntityHandle<C...>::add_components(Args&&... args)
+void EntityHandle<P, C...>::add_components(Args&&... args)
 {
 	(void)impl::expand{([]
 	{
 		static_assert(impl::is_any<Ts, C...>::value, "Component not found");
 	}(), 0)...};
-	assert(valid_ && "Entity isn't valid");
+	assert(this->valid_ && "Entity isn't valid");
 
 	entities_[index_].template add_components<Ts...>(std::forward<Args>(args)...);
 }
 
-template <typename... C>
+template <typename P, typename... C>
 template <typename... Ts>
-void EntityHandle<C...>::remove_components()
+void EntityHandle<P, C...>::remove_components()
 {
 	(void)impl::expand{([]
 	{
 		static_assert(impl::is_any<Ts, C...>::value, "Component not found");
 	}(), 0)...};
-	assert(valid_ && "Entity isn't valid");
+	assert(this->valid_ && "Entity isn't valid");
 
 	entities_[index_].template remove_components<Ts...>();
 }
-
 
 } // namespace mantra
 

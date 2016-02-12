@@ -38,36 +38,34 @@
 namespace mantra
 {
 
-template <typename... C>
-class EntityHandle
+template <typename P, typename... C>
+class EntityHandle final
+#ifndef NDEBUG
+	: public impl::DebugHandle<C...>
+#endif
 {
 	public:
 	EntityHandle(std::vector<impl::Entity<C...>>&, std::size_t);
 
-#ifndef NDEBUG
-	EntityHandle(EntityHandle const&);
-	EntityHandle(EntityHandle&&);
-
-	~EntityHandle();
-	
-	void invalidate_(impl::EntityKey) noexcept;
-#else
 	EntityHandle(EntityHandle const&) = default;
+	EntityHandle& operator=(EntityHandle const&) = delete;
+	
 	EntityHandle(EntityHandle&&) = default;
+	EntityHandle& operator=(EntityHandle&&) = delete;
 
 	~EntityHandle() = default;
-#endif // NDEBUG
-
-	EntityHandle& operator=(EntityHandle const&) = delete;
-	EntityHandle& operator=(EntityHandle&&) = delete;
 
 	void destroy();
 
 	template <typename T>
-	T& get_component() noexcept;
+	std::enable_if_t<impl::is_any<P, T, void>::value, T>& get_component() noexcept;
 
 	template <typename T>
-	T const& get_component() const noexcept;
+	std::enable_if_t<!std::is_pointer<T>::value, T> const& get_component() const noexcept;
+
+	template <typename T>
+	std::enable_if_t<std::is_pointer<T>::value, std::remove_pointer_t<T>> const* const&
+		get_component() const noexcept;
 
 	template <typename... Ts>
 	bool has_components() const noexcept;
@@ -90,9 +88,6 @@ class EntityHandle
 	private:
 	std::vector<impl::Entity<C...>>& entities_;
 	std::size_t index_;
-#ifndef NDEBUG
-	bool valid_;
-#endif
 };
 
 template <typename... C>

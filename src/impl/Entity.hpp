@@ -45,19 +45,66 @@
 namespace mantra
 {
 
-template <typename... C>
-class EntityHandle;
-
 namespace impl
 {
 
-class EntityKey
+class EntityKey;
+
+#ifndef NDEBUG
+template <typename... C>
+class Entity;
+
+template <typename... C>
+class DebugHandle
 {
-	template <typename... C>
-	friend class Entity;
-	template <typename... C>
-	friend class EntityHandle;
+	public:
+	DebugHandle(std::vector<Entity<C...>>& entities, std::size_t index)
+		: entities_{entities}, index_{index}, valid_{true}
+	{
+		entities_[index_].add_handle(this);
+	}
+	
+	DebugHandle(DebugHandle const& cp)
+		: entities_{cp.entities_}, index_{cp.index_}, valid_{cp.valid_}
+	{
+		if (valid_)
+			entities_[index_].add_handle(this);
+	}
+
+	DebugHandle(DebugHandle&& mv)
+		: entities_{mv.entities_}, index_{mv.index_}, valid_{mv.valid_}
+	{
+		if (valid_)
+		{
+			entities_[index_].remove_handle(&mv);
+			mv.valid_ = false;
+			entities_[index_].add_handle(this);
+		}
+	}
+
+	~DebugHandle()
+	{
+		if (valid_)
+		{
+			entities_[index_].remove_handle(this);
+			valid_ = false;
+		}
+	}
+	
+	void invalidate_() noexcept
+	{
+		valid_ = false;
+	}
+
+	private:
+	std::vector<Entity<C...>>& entities_;
+	std::size_t index_;
+
+	protected:
+	bool valid_;
 };
+
+#endif // NDEBUG
 
 template <typename... C>
 class Entity
@@ -169,13 +216,26 @@ class Entity
 	}
 	
 	template <typename T>
-	T const& get_component() const noexcept
+	std::enable_if_t<!std::is_pointer<T>::value, T> const& get_component() const noexcept
 	{
 		auto idx = comps_idx_[TypeToIndex<0, T, C...>::value];
 		assert(exists_ && "Entity doesn't exists");
 		assert((idx != -1) && "Entity doesn't have this component");
 
 		return std::get<CompVec<T>>(comps_)[static_cast<std::size_t>(idx)].get();
+	}
+
+	template <typename P>
+	std::enable_if_t<std::is_pointer<P>::value, std::remove_pointer_t<P>> const* const&
+		get_pointer() const noexcept
+	{
+		auto idx = comps_idx_[TypeToIndex<0, P, C...>::value];
+		assert(exists_ && "Entity doesn't exists");
+		assert((idx != -1) && "Entity doesn't have this component");
+
+		using T = std::remove_pointer_t<P>;
+
+		return *const_cast<T const**>(&std::get<CompVec<P>>(comps_)[static_cast<std::size_t>(idx)].get());
 	}
 
 	template <typename... Ts>
@@ -256,12 +316,12 @@ class Entity
 	}
 	
 #ifndef NDEBUG
-	void add_handle(EntityHandle<C...>* handle)
+	void add_handle(DebugHandle<C...>* handle)
 	{
 		handles_.emplace_back(handle);
 	}
 
-	void remove_handle(EntityHandle<C...>* handle)
+	void remove_handle(DebugHandle<C...>* handle)
 	{
 		handles_.erase(std::remove(std::begin(handles_), std::end(handles_), handle), std::end(handles_));
 	}
@@ -269,7 +329,7 @@ class Entity
 	void invalidate_handles() noexcept
 	{
 		for (auto elem : handles_)
-			elem->invalidate_(EntityKey{});
+			elem->invalidate_();
 		handles_.clear();
 	}
 #endif // NDEBUG
@@ -293,7 +353,7 @@ class Entity
 	Comps& comps_;
 	std::array<long, sizeof...(C)> comps_idx_;
 #ifndef NDEBUG
-	std::vector<EntityHandle<C...>*> handles_;
+	std::vector<DebugHandle<C...>*> handles_;
 #endif // NDEBUG
 	bool exists_;
 };

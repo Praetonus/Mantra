@@ -59,10 +59,10 @@ template <typename... S>
 using SL = SystemList<S...>;
 
 template <typename Comp, typename Sys>
-class World{private: World() {}};
+class World final {private: World() {}};
 
 template <typename... C, typename... S>
-class World<CL<C...>, SL<S...>>
+class World<CL<C...>, SL<S...>> final
 {
 	public:
 	World() noexcept;
@@ -76,10 +76,10 @@ class World<CL<C...>, SL<S...>>
 	~World();
 
 	template <typename... Ts>
-	EntityHandle<C...> create_entity();
+	EntityHandle<void, C...> create_entity();
 
 	template <typename... Ts, typename... Args>
-	EntityHandle<C...> create_entity(Args&&...);
+	EntityHandle<void, C...> create_entity(Args&&...);
 
 	private:
 	std::vector<impl::Entity<C...>> entities_;

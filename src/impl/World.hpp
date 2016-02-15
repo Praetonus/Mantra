@@ -103,7 +103,8 @@ template <typename... C, typename... S>
 template <typename T, typename P, typename... O>
 void World<CL<C...>, SL<S...>>::update_(impl::TypeList<O...>)
 {
-	std::get<T>(systems_).update(WorldView<Self, P, O...>{entities_, components_});
+	using TP = std::conditional_t<std::is_same<P, void>{}, void const, P>;
+	std::get<T>(systems_).update(WorldView<Self, TP, O...>{entities_, components_});
 }
 
 } // namespace mantra

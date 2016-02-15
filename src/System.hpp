@@ -46,7 +46,8 @@ class System
 {
 	public:
 	using Primary = P;
-	using Components = impl::TypeList<P, C...>;
+	using Components = std::conditional_t<std::is_same<P, void>{},
+	                                      impl::TypeList<C...>, impl::TypeList<P, C...>>;
 	
 	System() {}
 	

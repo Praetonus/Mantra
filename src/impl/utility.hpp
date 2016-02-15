@@ -37,6 +37,9 @@
 #include <cstdint>
 #include <type_traits>
 #include <utility>
+#include <vector>
+
+#include <boost/optional.hpp>
 
 namespace mantra
 {
@@ -54,7 +57,7 @@ struct is_any<T1, T2> : std::is_same<T1, T2> {};
 
 template <typename T, typename First, typename... Others>
 struct is_any<T, First, Others...>
-	: std::integral_constant<bool, std::is_same<T, First>::value || is_any<T, Others...>::value>
+	: std::integral_constant<bool, std::is_same<T, First>{} || is_any<T, Others...>{}>
 {};
 
 template <typename... Ts>
@@ -70,14 +73,14 @@ struct TypeList
 	template <typename T>
 	bool constexpr contains() const noexcept
 	{
-		return is_any<T, Ts...>::value;
+		return is_any<T, Ts...>{};
 	}
 
 	private:
 	template <typename Current, typename... Others>
 	void constexpr validate_unicity_() noexcept
 	{
-		static_assert(!is_any<Current, Others...>::value, "Supplied same type multiple times");
+		static_assert(!is_any<Current, Others...>{}, "Supplied same type multiple times");
 		validate_unicity_<Others...>();
 	}
 
@@ -94,9 +97,31 @@ decltype(auto) invoke_helper(F&& f, T&& t, std::index_sequence<I...>)
 template <typename F, typename T>
 decltype(auto) invoke(F&& f, T&& t)
 {
-	auto constexpr S = std::tuple_size<typename std::decay<T>::type>::value;
+	auto constexpr S = std::tuple_size<typename std::decay<T>::type>{};
 	return invoke_helper(std::forward<F>(f), std::forward<T>(t), std::make_index_sequence<S>{});
 }
+
+template <typename... C, typename... T>
+void constexpr validate_type_list(TypeList<C...>, TypeList<T...>) noexcept
+{
+	(void)impl::expand{([]
+	{
+		static_assert(impl::is_any<T, C...>{}, "Component not found");
+	}(), 0)...};
+}
+
+template <typename... Ts>
+class Entity;
+
+template <typename T>
+struct WorldCont;
+
+template <typename... Ts>
+struct WorldCont<impl::TypeList<Ts...>>
+{
+	using EntCont = std::vector<impl::Entity<Ts...>>;
+	using CompCont = std::tuple<std::vector<boost::optional<Ts>>...>;
+};
 
 } // namespace impl
 

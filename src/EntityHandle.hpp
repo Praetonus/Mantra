@@ -38,14 +38,16 @@
 namespace mantra
 {
 
-template <typename P, typename... C>
+template <typename W, typename P, typename... C>
 class EntityHandle final
 #ifndef NDEBUG
-	: public impl::DebugHandle<C...>
+	: public impl::DebugHandle<typename W::Components>
 #endif
 {
+	using WC = impl::WorldCont<typename W::Components>;
+
 	public:
-	EntityHandle(std::vector<impl::Entity<C...>>&, std::size_t);
+	EntityHandle(typename WC::EntCont&, std::size_t);
 
 	EntityHandle(EntityHandle const&) = default;
 	EntityHandle& operator=(EntityHandle const&) = delete;
@@ -58,13 +60,13 @@ class EntityHandle final
 	void destroy();
 
 	template <typename T>
-	std::enable_if_t<impl::is_any<P, T, void>::value, T>& get_component() noexcept;
+	std::enable_if_t<impl::is_any<P, T, void>{}, T>& get_component() noexcept;
 
 	template <typename T>
-	std::enable_if_t<!std::is_pointer<T>::value, T> const& get_component() const noexcept;
+	std::enable_if_t<!std::is_pointer<T>{}, T> const& get_component() const noexcept;
 
 	template <typename T>
-	std::enable_if_t<std::is_pointer<T>::value, std::remove_pointer_t<T>> const* const&
+	std::enable_if_t<std::is_pointer<T>{}, std::remove_pointer_t<T>> const* const&
 		get_component() const noexcept;
 
 	template <typename... Ts>
@@ -86,7 +88,7 @@ class EntityHandle final
 	friend bool operator==(mantra::EntityHandle<CC...> const&, mantra::EntityHandle<CC...> const&) noexcept;
 
 	private:
-	std::vector<impl::Entity<C...>>& entities_;
+	typename WC::EntCont& entities_;
 	std::size_t index_;
 };
 

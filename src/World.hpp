@@ -38,7 +38,6 @@
 #include <cassert>
 #include <functional>
 #include <tuple>
-#include <vector>
 
 #include "EntityHandle.hpp"
 #include "impl/utility.hpp"
@@ -64,7 +63,11 @@ class World final {private: World() {}};
 template <typename... C, typename... S>
 class World<CL<C...>, SL<S...>> final
 {
+	using Self = World<CL<C...>, SL<S...>>;
 	public:
+	using Components = CL<C...>;
+	using Systems = SL<S...>;
+	
 	World() noexcept;
 
 	World(World const&) = delete;
@@ -76,18 +79,20 @@ class World<CL<C...>, SL<S...>> final
 	~World();
 
 	template <typename... Ts>
-	EntityHandle<void, C...> create_entity();
+	EntityHandle<Self, void, C...> create_entity();
 
 	template <typename... Ts, typename... Args>
-	EntityHandle<void, C...> create_entity(Args&&...);
+	EntityHandle<Self, void, C...> create_entity(Args&&...);
+
+	void update();
 
 	private:
+	template <typename T, typename P, typename... O>
+	void update_(impl::TypeList<O...>);
+
 	std::vector<impl::Entity<C...>> entities_;
 	std::tuple<std::vector<boost::optional<C>>...> components_;
 	std::tuple<S...> systems_;
-
-	template <typename... U>
-	void constexpr validate_type_list_(impl::TypeList<U...>);
 };
 
 template <typename... C, typename... S>

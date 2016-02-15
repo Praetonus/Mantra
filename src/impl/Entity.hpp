@@ -54,8 +54,11 @@ class EntityKey;
 template <typename... C>
 class Entity;
 
+template <typename C>
+class DebugHandle;
+
 template <typename... C>
-class DebugHandle
+class DebugHandle<TypeList<C...>>
 {
 	public:
 	DebugHandle(std::vector<Entity<C...>>& entities, std::size_t index)
@@ -118,7 +121,7 @@ class Entity
 	{};
 
 	template <std::size_t I, typename T, typename U, typename... Cs>
-	struct TypeToIndex<I, T, U, Cs...> : std::integral_constant<std::size_t, TypeToIndex<I+1, T, Cs...>::value>
+	struct TypeToIndex<I, T, U, Cs...> : std::integral_constant<std::size_t, TypeToIndex<I+1, T, Cs...>{}>
 	{};
 
 	template <std::size_t I, typename T, typename... Cs>
@@ -208,7 +211,7 @@ class Entity
 	template <typename T>
 	T& get_component() noexcept
 	{
-		auto idx = comps_idx_[TypeToIndex<0, T, C...>::value];
+		auto idx = comps_idx_[TypeToIndex<0, T, C...>()];
 		assert(exists_ && "Entity doesn't exists");
 		assert((idx != -1) && "Entity doesn't have this component");
 		
@@ -216,9 +219,9 @@ class Entity
 	}
 	
 	template <typename T>
-	std::enable_if_t<!std::is_pointer<T>::value, T> const& get_component() const noexcept
+	std::enable_if_t<!std::is_pointer<T>{}, T> const& get_component() const noexcept
 	{
-		auto idx = comps_idx_[TypeToIndex<0, T, C...>::value];
+		auto idx = comps_idx_[TypeToIndex<0, T, C...>()];
 		assert(exists_ && "Entity doesn't exists");
 		assert((idx != -1) && "Entity doesn't have this component");
 
@@ -226,10 +229,10 @@ class Entity
 	}
 
 	template <typename P>
-	std::enable_if_t<std::is_pointer<P>::value, std::remove_pointer_t<P>> const* const&
+	std::enable_if_t<std::is_pointer<P>{}, std::remove_pointer_t<P>> const* const&
 		get_pointer() const noexcept
 	{
-		auto idx = comps_idx_[TypeToIndex<0, P, C...>::value];
+		auto idx = comps_idx_[TypeToIndex<0, P, C...>()];
 		assert(exists_ && "Entity doesn't exists");
 		assert((idx != -1) && "Entity doesn't have this component");
 
@@ -255,7 +258,7 @@ class Entity
 	{
 		assert(exists_ && "Entity doesn't exists");
 #ifndef NDEBUG	
-		assert((comps_idx_[TypeToIndex<0, T, C...>::value] == -1) && "Entity already has this component");
+		assert((comps_idx_[TypeToIndex<0, T, C...>()] == -1) && "Entity already has this component");
 #endif
 		
 		assign_comp_(std::get<CompVec<T>>(comps_), std::forward_as_tuple(std::forward<Args>(args)...),
@@ -269,7 +272,7 @@ class Entity
 #ifndef NDEBUG	
 		(void)expand
 		{(
-			assert((comps_idx_[TypeToIndex<0, Ts, C...>::value] == -1) && "Entity already has this component"), 0
+			assert((comps_idx_[TypeToIndex<0, Ts, C...>()] == -1) && "Entity already has this component"), 0
 		)...};
 #endif
 		(void)expand
@@ -286,7 +289,7 @@ class Entity
 #ifndef NDEBUG	
 		(void)expand
 		{(
-			assert((comps_idx_[TypeToIndex<0, Ts, C...>::value] == -1) && "Entity already has this component"), 0
+			assert((comps_idx_[TypeToIndex<0, Ts, C...>()] == -1) && "Entity already has this component"), 0
 		)...};
 #endif
 		
@@ -303,25 +306,25 @@ class Entity
 #ifndef NDEBUG
 		(void)expand
 		{(
-			assert((comps_idx_[TypeToIndex<0, Ts, C...>::value] != -1) && "Entity doesn't have this component"), 0
+			assert((comps_idx_[TypeToIndex<0, Ts, C...>()] != -1) && "Entity doesn't have this component"), 0
 		)...};
 #endif
 		
 		(void)expand
 		{(
 			std::get<CompVec<Ts>>(comps_)
-				[static_cast<std::size_t>(comps_idx_[TypeToIndex<0, Ts, C...>::value])] = boost::none,
-			comps_idx_[TypeToIndex<0, Ts, C...>::value] = -1, 0
+				[static_cast<std::size_t>(comps_idx_[TypeToIndex<0, Ts, C...>()])] = boost::none,
+			comps_idx_[TypeToIndex<0, Ts, C...>()] = -1, 0
 		)...};
 	}
 	
 #ifndef NDEBUG
-	void add_handle(DebugHandle<C...>* handle)
+	void add_handle(DebugHandle<TypeList<C...>>* handle)
 	{
 		handles_.emplace_back(handle);
 	}
 
-	void remove_handle(DebugHandle<C...>* handle)
+	void remove_handle(DebugHandle<TypeList<C...>>* handle)
 	{
 		handles_.erase(std::remove(std::begin(handles_), std::end(handles_), handle), std::end(handles_));
 	}
@@ -347,13 +350,13 @@ class Entity
 		}
 		invoke([it](auto&&... a){it->emplace(std::forward<decltype(a)>(a)...);},
 		       std::forward<Tuple>(args));
-		comps_idx_[TypeToIndex<0, T, C...>::value] = std::distance(std::begin(comps), it);
+		comps_idx_[TypeToIndex<0, T, C...>()] = std::distance(std::begin(comps), it);
 	}
 
 	Comps& comps_;
 	std::array<long, sizeof...(C)> comps_idx_;
 #ifndef NDEBUG
-	std::vector<DebugHandle<C...>*> handles_;
+	std::vector<DebugHandle<TypeList<C...>>*> handles_;
 #endif // NDEBUG
 	bool exists_;
 };

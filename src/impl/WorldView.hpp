@@ -30,38 +30,56 @@
  * knowledge of the CeCILL-B license and that you accept its terms.
  *****/
 
-#ifndef MANTRA_SYSTEM_HPP
-#define MANTRA_SYSTEM_HPP
+#ifndef MANTRA_IMPL_WORLDVIEW_HPP
+#define MANTRA_IMPL_WORLDVIEW_HPP
 
-#include <vector>
-
-#include "WorldView.hpp"
-#include "impl/utility.hpp"
+#include "../WorldView.hpp"
 
 namespace mantra
 {
 
-template <typename P, typename... C>
-class System
+template <typename W, typename P, typename... C>
+WorldView<W, P, C...>::WorldView(typename WC::EntCont& entities, typename WC::CompCont& components) noexcept
+	: entities_{entities}, components_{components}
 {
-	public:
-	using Primary = P;
-	using Components = impl::TypeList<P, C...>;
-	
-	System() {}
-	
-	System(System const&) = delete;
-	System& operator=(System const&) = delete;
+	impl::validate_type_list(typename W::Components{}, impl::TypeList<C...>{});
+}
 
-	System(System&&) = default;
-	System& operator=(System&&) = default;
+template <typename W, typename P, typename... C>
+template <typename... Ts>
+EntityHandle<W, P, C...> WorldView<W, P, C...>::create_entity()
+{
+	impl::TypeList<Ts...> comp_types{};
+	impl::validate_type_list(impl::TypeList<C...>{}, comp_types);
 
-	template <typename WV>
-	void update(WV&&) {}
+	auto it = std::find_if(std::begin(entities_), std::end(entities_),
+	                       [](auto const& e){return !e;});
+	if (it == std::end(entities_))
+	{
+		entities_.emplace_back(components_);
+		it = std::end(entities_) - 1;
+	}
+	it->create(comp_types);
+	return {entities_, static_cast<std::size_t>(std::distance(std::begin(entities_), it))};
+}
 
-	protected:
-	~System() = default;
-};
+template <typename W, typename P, typename... C>
+template <typename... Ts, typename... Args>
+EntityHandle<W, P, C...> WorldView<W, P, C...>::create_entity(Args&&... args)
+{
+	impl::TypeList<Ts...> comp_types{};
+	impl::validate_type_list(impl::TypeList<C...>{}, comp_types);
+
+	auto it = std::find_if(std::begin(entities_), std::end(entities_),
+	                       [](auto const& e){return !e;});
+	if (it == std::end(entities_))
+	{
+		entities_.emplace_back(components_);
+		it = std::end(entities_) - 1;
+	}
+	it->create(comp_types, std::forward<Args>(args)...);
+	return {entities_, static_cast<std::size_t>(std::distance(std::begin(entities_), it))};
+}
 
 } // namespace mantra
 

@@ -30,39 +30,51 @@
  * knowledge of the CeCILL-B license and that you accept its terms.
  *****/
 
-#ifndef MANTRA_SYSTEM_HPP
-#define MANTRA_SYSTEM_HPP
+#ifndef MANTRA_WORLDVIEW_HPP
+#define MANTRA_WORLDVIEW_HPP
 
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <functional>
+#include <tuple>
 #include <vector>
 
-#include "WorldView.hpp"
+#include "EntityHandle.hpp"
 #include "impl/utility.hpp"
 
 namespace mantra
 {
 
-template <typename P, typename... C>
-class System
+template <typename W, typename P, typename... C>
+class WorldView final
 {
+	using WC = impl::WorldCont<typename W::Components>;
+
 	public:
-	using Primary = P;
-	using Components = impl::TypeList<P, C...>;
+	WorldView(typename WC::EntCont&, typename WC::CompCont&) noexcept;
+
+	WorldView(WorldView const&) = delete;
+	WorldView& operator=(WorldView const&) = delete;
 	
-	System() {}
-	
-	System(System const&) = delete;
-	System& operator=(System const&) = delete;
+	WorldView(WorldView&&) = delete;
+	WorldView& operator=(WorldView&&) = delete;
 
-	System(System&&) = default;
-	System& operator=(System&&) = default;
+	~WorldView() = default;
 
-	template <typename WV>
-	void update(WV&&) {}
+	template <typename... Ts>
+	EntityHandle<W, P, C...> create_entity();
 
-	protected:
-	~System() = default;
+	template <typename... Ts, typename... Args>
+	EntityHandle<W, P, C...> create_entity(Args&&...);
+
+	private:
+	typename WC::EntCont& entities_;
+	typename WC::CompCont& components_;
 };
 
 } // namespace mantra
+
+#include "impl/WorldView.hpp"
 
 #endif // Header guard

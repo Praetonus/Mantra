@@ -36,6 +36,8 @@
 
 #include "../World.hpp"
 
+#include "../WorldView.hpp"
+
 namespace mantra
 {
 
@@ -43,7 +45,7 @@ template <typename... C, typename... S>
 World<CL<C...>, SL<S...>>::World() noexcept
 	: entities_{}, components_{}, systems_{}
 {
-	(void)impl::expand{(validate_type_list_(typename S::Components{}), 0)...};
+	(void)impl::expand{(impl::validate_type_list(impl::TypeList<C...>{}, typename S::Components{}), 0)...};
 }
 
 template <typename... C, typename... S>
@@ -54,10 +56,10 @@ World<CL<C...>, SL<S...>>::~World()
 
 template <typename... C, typename... S>
 template <typename... Ts>
-EntityHandle<void, C...> World<CL<C...>, SL<S...>>::create_entity()
+auto World<CL<C...>, SL<S...>>::create_entity() -> EntityHandle<Self, void, C...>
 {
 	impl::TypeList<Ts...> comp_types{};
-	validate_type_list_(comp_types);
+	impl::validate_type_list(impl::TypeList<C...>{}, comp_types);
 
 	auto it = std::find_if(std::begin(entities_), std::end(entities_),
 	                       [](auto const& e){return !e;});
@@ -67,16 +69,15 @@ EntityHandle<void, C...> World<CL<C...>, SL<S...>>::create_entity()
 		it = std::end(entities_) - 1;
 	}
 	it->create(comp_types);
-	return EntityHandle<void, C...>{entities_,
-	                                static_cast<std::size_t>(std::distance(std::begin(entities_), it))};
+	return {entities_, static_cast<std::size_t>(std::distance(std::begin(entities_), it))};
 }
 
 template <typename... C, typename... S>
 template <typename... Ts, typename... Args>
-EntityHandle<void, C...> World<CL<C...>, SL<S...>>::create_entity(Args&&... args)
+auto World<CL<C...>, SL<S...>>::create_entity(Args&&... args) -> EntityHandle<Self, void, C...>
 {
 	impl::TypeList<Ts...> comp_types{};
-	validate_type_list_(comp_types);
+	impl::validate_type_list(impl::TypeList<C...>{}, comp_types);
 
 	auto it = std::find_if(std::begin(entities_), std::end(entities_),
 	                       [](auto const& e){return !e;});
@@ -86,18 +87,23 @@ EntityHandle<void, C...> World<CL<C...>, SL<S...>>::create_entity(Args&&... args
 		it = std::end(entities_) - 1;
 	}
 	it->create(comp_types, std::forward<Args>(args)...);
-	return EntityHandle<void, C...>{entities_,
-	                                static_cast<std::size_t>(std::distance(std::begin(entities_), it))};
+	return {entities_, static_cast<std::size_t>(std::distance(std::begin(entities_), it))};
 }
 
 template <typename... C, typename... S>
-template <typename... U>
-void constexpr World<CL<C...>, SL<S...>>::validate_type_list_(impl::TypeList<U...>)
+void World<CL<C...>, SL<S...>>::update()
 {
-	(void)impl::expand{([]
-	{
-		static_assert(impl::is_any<U, C...>::value, "Component not found");
-	}(), 0)...};
+	(void)impl::expand
+	{(
+		update_<S, typename S::Primary>(typename S::Components{}), 0
+	)...};
+}
+
+template <typename... C, typename... S>
+template <typename T, typename P, typename... O>
+void World<CL<C...>, SL<S...>>::update_(impl::TypeList<O...>)
+{
+	std::get<T>(systems_).update(WorldView<Self, P, O...>{entities_, components_});
 }
 
 } // namespace mantra

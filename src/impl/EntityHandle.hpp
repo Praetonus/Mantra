@@ -46,7 +46,7 @@ EntityHandle<W, P, C...>::EntityHandle(typename WC::EntCont& entities, std::size
 #endif
 	  entities_{entities}, index_{index}
 {
-	impl::validate_type_list(typename W::Components{}, impl::TypeList<C...>{});
+	impl::validate_components(typename W::Components{}, impl::TypeList<C...>{});
 }
 
 template <typename W, typename P, typename... C>
@@ -61,7 +61,7 @@ template <typename W, typename P, typename... C>
 template <typename T>
 std::enable_if_t<impl::is_any<P, T, void>{}, T>& EntityHandle<W, P, C...>::get_component() noexcept
 {
-	static_assert(impl::is_any<T, C...>{}, "Component not found");
+	impl::validate_component<T, C...>();
 	assert(this->valid_ && "Entity isn't valid");
 
 	return entities_[index_].template get_component<T>();
@@ -71,7 +71,7 @@ template <typename W, typename P, typename... C>
 template <typename T>
 std::enable_if_t<!std::is_pointer<T>{}, T> const& EntityHandle<W, P, C...>::get_component() const noexcept
 {
-	static_assert(impl::is_any<T, C...>{}, "Component not found");
+	impl::validate_component<T, C...>();
 	assert(this->valid_ && "Entity isn't valid");
 
 	return entities_[index_].template get_component<T>();
@@ -82,7 +82,7 @@ template <typename T>
 std::enable_if_t<std::is_pointer<T>{}, std::remove_pointer_t<T>> const* const&
 	EntityHandle<W, P, C...>::get_component() const noexcept
 {
-	static_assert(impl::is_any<T, C...>{}, "Component not found");
+	impl::validate_component<T, C...>();
 	assert(this->valid_ && "Entity isn't valid");
 
 	return entities_[index_].template get_pointer<T>();
@@ -92,10 +92,7 @@ template <typename W, typename P, typename... C>
 template <typename... Ts>
 bool EntityHandle<W, P, C...>::has_components() const noexcept
 {
-	(void)impl::expand{([]
-	{
-		static_assert(impl::is_any<Ts, C...>{}, "Component not found");
-	}(), 0)...};
+	impl::validate_components(impl::TypeList<C...>{}, impl::TypeList<Ts...>{});
 	assert(this->valid_ && "Entity isn't valid");
 
 	return entities_[index_].template has_components<Ts...>();
@@ -105,7 +102,7 @@ template <typename W, typename P, typename... C>
 template <typename T, typename... Args>
 void EntityHandle<W, P, C...>::add_component(Args&&... args)
 {
-	static_assert(impl::is_any<T, C...>{}, "Component not found");
+	impl::validate_component<T, C...>();
 	assert(this->valid_ && "Entity isn't valid");
 
 	return entities_[index_].template add_component<T>(std::forward<Args>(args)...);
@@ -115,10 +112,7 @@ template <typename W, typename P, typename... C>
 template <typename... Ts>
 void EntityHandle<W, P, C...>::add_components()
 {
-	(void)impl::expand{([]
-	{
-		static_assert(impl::is_any<Ts, C...>{}, "Component not found");
-	}(), 0)...};
+	impl::validate_components(impl::TypeList<C...>{}, impl::TypeList<Ts...>{});
 	assert(this->valid_ && "Entity isn't valid");
 
 	entities_[index_].template add_components<Ts...>();
@@ -128,10 +122,7 @@ template <typename W, typename P, typename... C>
 template <typename... Ts, typename... Args>
 void EntityHandle<W, P, C...>::add_components(Args&&... args)
 {
-	(void)impl::expand{([]
-	{
-		static_assert(impl::is_any<Ts, C...>{}, "Component not found");
-	}(), 0)...};
+	impl::validate_components(impl::TypeList<C...>{}, impl::TypeList<Ts...>{});
 	assert(this->valid_ && "Entity isn't valid");
 
 	entities_[index_].template add_components<Ts...>(std::forward<Args>(args)...);
@@ -141,10 +132,7 @@ template <typename W, typename P, typename... C>
 template <typename... Ts>
 void EntityHandle<W, P, C...>::remove_components()
 {
-	(void)impl::expand{([]
-	{
-		static_assert(impl::is_any<Ts, C...>{}, "Component not found");
-	}(), 0)...};
+	impl::validate_components(impl::TypeList<C...>{}, impl::TypeList<Ts...>{});
 	assert(this->valid_ && "Entity isn't valid");
 
 	entities_[index_].template remove_components<Ts...>();

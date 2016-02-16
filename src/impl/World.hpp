@@ -45,7 +45,7 @@ template <typename... C, typename... S>
 World<CL<C...>, SL<S...>>::World() noexcept
 	: entities_{}, components_{}, systems_{}
 {
-	(void)impl::expand{(impl::validate_type_list(impl::TypeList<C...>{}, typename S::Components{}), 0)...};
+	(void)impl::expand{(impl::validate_components(impl::TypeList<C...>{}, typename S::Components{}), 0)...};
 }
 
 template <typename... C, typename... S>
@@ -59,7 +59,7 @@ template <typename... Ts>
 auto World<CL<C...>, SL<S...>>::create_entity() -> EntityHandle<Self, void, C...>
 {
 	impl::TypeList<Ts...> comp_types{};
-	impl::validate_type_list(impl::TypeList<C...>{}, comp_types);
+	impl::validate_components(impl::TypeList<C...>{}, comp_types);
 
 	auto it = std::find_if(std::begin(entities_), std::end(entities_),
 	                       [](auto const& e){return !e;});
@@ -77,7 +77,7 @@ template <typename... Ts, typename... Args>
 auto World<CL<C...>, SL<S...>>::create_entity(Args&&... args) -> EntityHandle<Self, void, C...>
 {
 	impl::TypeList<Ts...> comp_types{};
-	impl::validate_type_list(impl::TypeList<C...>{}, comp_types);
+	impl::validate_components(impl::TypeList<C...>{}, comp_types);
 
 	auto it = std::find_if(std::begin(entities_), std::end(entities_),
 	                       [](auto const& e){return !e;});

@@ -42,7 +42,7 @@ template <typename W, typename P, typename... C>
 WorldView<W, P, C...>::WorldView(typename WC::EntCont& entities, typename WC::CompCont& components) noexcept
 	: entities_{entities}, components_{components}
 {
-	impl::validate_type_list(typename W::Components{}, impl::TypeList<C...>{});
+	impl::validate_components(typename W::Components{}, impl::TypeList<C...>{});
 }
 
 template <typename W, typename P, typename... C>
@@ -50,7 +50,7 @@ template <typename... Ts>
 EntityHandle<W, P, C...> WorldView<W, P, C...>::create_entity()
 {
 	impl::TypeList<Ts...> comp_types{};
-	impl::validate_type_list(impl::TypeList<C...>{}, comp_types);
+	impl::validate_components(impl::TypeList<C...>{}, comp_types);
 
 	auto it = std::find_if(std::begin(entities_), std::end(entities_),
 	                       [](auto const& e){return !e;});
@@ -68,7 +68,7 @@ template <typename... Ts, typename... Args>
 EntityHandle<W, P, C...> WorldView<W, P, C...>::create_entity(Args&&... args)
 {
 	impl::TypeList<Ts...> comp_types{};
-	impl::validate_type_list(impl::TypeList<C...>{}, comp_types);
+	impl::validate_components(impl::TypeList<C...>{}, comp_types);
 
 	auto it = std::find_if(std::begin(entities_), std::end(entities_),
 	                       [](auto const& e){return !e;});

@@ -101,13 +101,19 @@ decltype(auto) invoke(F&& f, T&& t)
 	return invoke_helper(std::forward<F>(f), std::forward<T>(t), std::make_index_sequence<S>{});
 }
 
-template <typename... C, typename... T>
-void constexpr validate_type_list(TypeList<C...>, TypeList<T...>) noexcept
+template <typename T, typename... C>
+void constexpr validate_component() noexcept
 {
-	(void)impl::expand{([]
-	{
-		static_assert(impl::is_any<T, C...>{}, "Component not found");
-	}(), 0)...};
+	static_assert(is_any<T, C...>{}, "Invalid component type");
+}
+
+template <typename... C, typename... T>
+void constexpr validate_components(TypeList<C...>, TypeList<T...>) noexcept
+{
+	(void)expand
+	{(
+		validate_component<T, C...>(), 0
+	)...};
 }
 
 template <typename... Ts>

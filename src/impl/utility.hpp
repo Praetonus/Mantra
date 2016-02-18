@@ -123,9 +123,9 @@ template <typename T>
 struct WorldCont;
 
 template <typename... Ts>
-struct WorldCont<impl::TypeList<Ts...>>
+struct WorldCont<TypeList<Ts...>>
 {
-	using EntCont = std::vector<impl::Entity<Ts...>>;
+	using EntCont = std::vector<Entity<Ts...>>;
 	using CompCont = std::tuple<std::vector<boost::optional<Ts>>...>;
 };
 

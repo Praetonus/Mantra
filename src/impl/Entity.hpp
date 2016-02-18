@@ -244,6 +244,7 @@ class Entity
 	template <typename... Ts>
 	bool has_components() const noexcept
 	{
+		assert(exists_ && "Entity doesn't exists");
 		
 		for (auto i : {TypeToIndex<0, Ts, C...>::value...})
 		{

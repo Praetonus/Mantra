@@ -86,6 +86,8 @@ class EntityHandle final
 
 	template <typename... CC>
 	friend bool operator==(mantra::EntityHandle<CC...> const&, mantra::EntityHandle<CC...> const&) noexcept;
+	template <typename... CC>
+	friend bool operator!=(mantra::EntityHandle<CC...> const&, mantra::EntityHandle<CC...> const&) noexcept;
 
 	private:
 	typename WC::EntCont& entities_;
@@ -98,6 +100,14 @@ bool operator==(mantra::EntityHandle<C...> const& l, mantra::EntityHandle<C...> 
 	assert(l.valid_ && r.valid_ && "Entities aren't valid");
 
 	return &l.entities_ == &r.entities_ && l.index_ == r.index_;
+}
+
+template <typename... C>
+bool operator!=(mantra::EntityHandle<C...> const& l, mantra::EntityHandle<C...> const& r) noexcept
+{
+	assert(l.valid_ && r.valid_ && "Entities aren't valid");
+
+	return !(l == r);
 }
 
 } // namespace mantra

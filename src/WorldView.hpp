@@ -51,6 +51,57 @@ class WorldView final
 {
 	using WC = impl::WorldCont<typename W::Components>;
 
+	class EntityIterator : public std::iterator<
+	                                std::forward_iterator_tag,
+	                                EntityHandle<W, P, C...>,
+	                                std::ptrdiff_t,
+	                                EntityHandle<W, P, C...>*,
+	                                EntityHandle<W, P, C...>&>
+	{
+		public:
+		EntityIterator();
+		explicit EntityIterator(WorldView<W, P, C...>&);
+		
+		EntityIterator(EntityIterator const&);
+
+		EntityHandle<W, P, C...>& operator*();
+		EntityHandle<W, P, C...>* operator->();
+
+		EntityIterator& operator++();
+		EntityIterator operator++(int);
+
+		friend bool operator==(typename mantra::WorldView<W, P, C...>::EntityIterator const& l,
+		                       typename mantra::WorldView<W, P, C...>::EntityIterator const& r) noexcept
+		{
+			return l.view_ == r.view_ && l.index_ == r.index_;
+		}
+		
+		friend bool operator!=(typename mantra::WorldView<W, P, C...>::EntityIterator const& l,
+		                       typename mantra::WorldView<W, P, C...>::EntityIterator const& r) noexcept
+		{
+			return !(l == r);
+		}
+
+		private:
+		void find_next_();
+
+		WorldView<W, P, C...>* view_;
+		boost::optional<EntityHandle<W, P, C...>> handle_;
+		std::size_t index_;
+	};
+
+	class Entities
+	{
+		public:
+		explicit Entities(WorldView<W, P, C...>&);
+
+		EntityIterator begin();
+		EntityIterator end();
+
+		private:
+		WorldView<W, P, C...>& view_;
+	};
+
 	public:
 	WorldView(typename WC::EntCont&, typename WC::CompCont&) noexcept;
 
@@ -67,6 +118,8 @@ class WorldView final
 
 	template <typename... Ts, typename... Args>
 	EntityHandle<W, P, C...> create_entity(Args&&...);
+
+	Entities entities();
 
 	private:
 	typename WC::EntCont& entities_;

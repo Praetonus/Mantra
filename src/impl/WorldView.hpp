@@ -81,6 +81,114 @@ EntityHandle<W, P, C...> WorldView<W, P, C...>::create_entity(Args&&... args)
 	return {entities_, static_cast<std::size_t>(std::distance(std::begin(entities_), it))};
 }
 
+template <typename W, typename P, typename... C>
+typename WorldView<W, P, C...>::Entities WorldView<W, P, C...>::entities()
+{
+	return WorldView<W, P, C...>::Entities{*this};
+}
+
+template <typename W, typename P, typename... C>
+WorldView<W, P, C...>::Entities::Entities(WorldView<W, P, C...>& view)
+	: view_{view}
+{}
+
+template <typename W, typename P, typename... C>
+typename WorldView<W, P, C...>::EntityIterator WorldView<W, P, C...>::Entities::begin()
+{
+	return WorldView<W, P, C...>::EntityIterator{view_};
+}
+
+template <typename W, typename P, typename... C>
+typename WorldView<W, P, C...>::EntityIterator WorldView<W, P, C...>::Entities::end()
+{
+	return WorldView<W, P, C...>::EntityIterator{};
+}
+
+template <typename W, typename P, typename... C>
+WorldView<W, P, C...>::EntityIterator::EntityIterator()
+	: view_{nullptr}, handle_{}, index_{0}
+{}
+
+template <typename W, typename P, typename... C>
+WorldView<W, P, C...>::EntityIterator::EntityIterator(WorldView<W, P, C...>& view)
+	: view_{&view}, handle_{}, index_{0}
+{
+	if (view_->entities_.empty())
+	{
+		view_ = nullptr;
+		return;
+	}
+	if (view_->entities_[0] && view_->entities_[0].template has_components<C...>())
+		return;
+	find_next_();
+}
+
+template <typename W, typename P, typename... C>
+WorldView<W, P, C...>::EntityIterator::EntityIterator(WorldView<W, P, C...>::EntityIterator const& cp)
+	: view_{cp.view_}, handle_{}, index_{cp.index_}
+{}
+
+template <typename W, typename P, typename... C>
+EntityHandle<W, P, C...>& WorldView<W, P, C...>::EntityIterator::operator*()
+{
+	assert(view_ && "Can't dereference an invalid iterator");
+
+	if (!handle_)
+		handle_.emplace(view_->entities_, index_);
+
+	return handle_.get();
+}
+
+template <typename W, typename P, typename... C>
+EntityHandle<W, P, C...>* WorldView<W, P, C...>::EntityIterator::operator->()
+{
+	assert(view_ && "Can't dereference an invalid iterator");
+
+	if (!handle_)
+		handle_.emplace(view_->entities_, index_);
+
+	return &(handle_.get());
+}
+
+template <typename W, typename P, typename... C>
+typename WorldView<W, P, C...>::EntityIterator& WorldView<W, P, C...>::EntityIterator::operator++()
+{
+	assert(view_ && "Can't increment an invalid iterator");
+
+	handle_ = boost::none;
+	find_next_();
+
+	return *this;
+}
+
+template <typename W, typename P, typename... C>
+typename WorldView<W, P, C...>::EntityIterator WorldView<W, P, C...>::EntityIterator::operator++(int)
+{
+	assert(view_ && "Can't increment an invalid iterator");
+
+	auto cp = *this;
+	++*this;
+
+	return cp;
+}
+
+template <typename W, typename P, typename... C>
+void WorldView<W, P, C...>::EntityIterator::find_next_()
+{
+	assert(view_ && "(Dev) Can't call this on an invalid iterator");
+
+	auto it = std::find_if(std::begin(view_->entities_) + static_cast<std::ptrdiff_t>(index_) + 1,
+	                       std::end(view_->entities_),
+	                       [](auto const& e){return e && e.template has_components<C...>();});
+	if (it == std::end(view_->entities_))
+	{
+		view_ = nullptr;
+		index_ = 0;
+	}
+	else
+		index_ = static_cast<std::size_t>(it - std::begin(view_->entities_));
+}
+
 } // namespace mantra
 
 #endif // Header guard

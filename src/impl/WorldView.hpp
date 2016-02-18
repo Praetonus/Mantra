@@ -50,7 +50,7 @@ template <typename... Ts>
 EntityHandle<W, P, C...> WorldView<W, P, C...>::create_entity()
 {
 	impl::TypeList<Ts...> comp_types{};
-	impl::validate_components(impl::TypeList<C...>{}, comp_types);
+	impl::validate_components(typename W::Components{}, comp_types);
 
 	auto it = std::find_if(std::begin(entities_), std::end(entities_),
 	                       [](auto const& e){return !e;});
@@ -68,7 +68,7 @@ template <typename... Ts, typename... Args>
 EntityHandle<W, P, C...> WorldView<W, P, C...>::create_entity(Args&&... args)
 {
 	impl::TypeList<Ts...> comp_types{};
-	impl::validate_components(impl::TypeList<C...>{}, comp_types);
+	impl::validate_components(typename W::Components{}, comp_types);
 
 	auto it = std::find_if(std::begin(entities_), std::end(entities_),
 	                       [](auto const& e){return !e;});

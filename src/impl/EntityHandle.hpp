@@ -61,7 +61,7 @@ template <typename W, typename P, typename... C>
 template <typename T>
 std::enable_if_t<impl::is_any<P, T, void>{}, T>& EntityHandle<W, P, C...>::get_component() noexcept
 {
-	impl::validate_component<T, C...>();
+	impl::validate_component<T>(impl::TypeList<C...>{});
 	assert(this->valid_ && "Entity isn't valid");
 
 	return entities_[index_].template get_component<T>();
@@ -71,7 +71,7 @@ template <typename W, typename P, typename... C>
 template <typename T>
 std::enable_if_t<!std::is_pointer<T>{}, T> const& EntityHandle<W, P, C...>::get_component() const noexcept
 {
-	impl::validate_component<T, C...>();
+	impl::validate_component<T>(impl::TypeList<C...>{});
 	assert(this->valid_ && "Entity isn't valid");
 
 	return entities_[index_].template get_component<T>();
@@ -82,7 +82,7 @@ template <typename T>
 std::enable_if_t<std::is_pointer<T>{}, std::remove_pointer_t<T>> const* const&
 	EntityHandle<W, P, C...>::get_component() const noexcept
 {
-	impl::validate_component<T, C...>();
+	impl::validate_component<T>(impl::TypeList<C...>{});
 	assert(this->valid_ && "Entity isn't valid");
 
 	return entities_[index_].template get_pointer<T>();
@@ -92,7 +92,7 @@ template <typename W, typename P, typename... C>
 template <typename... Ts>
 bool EntityHandle<W, P, C...>::has_components() const noexcept
 {
-	impl::validate_components(impl::TypeList<C...>{}, impl::TypeList<Ts...>{});
+	impl::validate_components(typename W::Components{}, impl::TypeList<Ts...>{});
 	assert(this->valid_ && "Entity isn't valid");
 
 	return entities_[index_].template has_components<Ts...>();
@@ -102,7 +102,7 @@ template <typename W, typename P, typename... C>
 template <typename T, typename... Args>
 void EntityHandle<W, P, C...>::add_component(Args&&... args)
 {
-	impl::validate_component<T, C...>();
+	impl::validate_component<T>(typename W::Components{});
 	assert(this->valid_ && "Entity isn't valid");
 
 	return entities_[index_].template add_component<T>(std::forward<Args>(args)...);
@@ -112,7 +112,7 @@ template <typename W, typename P, typename... C>
 template <typename... Ts>
 void EntityHandle<W, P, C...>::add_components()
 {
-	impl::validate_components(impl::TypeList<C...>{}, impl::TypeList<Ts...>{});
+	impl::validate_components(typename W::Components{}, impl::TypeList<Ts...>{});
 	assert(this->valid_ && "Entity isn't valid");
 
 	entities_[index_].template add_components<Ts...>();
@@ -122,7 +122,7 @@ template <typename W, typename P, typename... C>
 template <typename... Ts, typename... Args>
 void EntityHandle<W, P, C...>::add_components(Args&&... args)
 {
-	impl::validate_components(impl::TypeList<C...>{}, impl::TypeList<Ts...>{});
+	impl::validate_components(typename W::Components{}, impl::TypeList<Ts...>{});
 	assert(this->valid_ && "Entity isn't valid");
 
 	entities_[index_].template add_components<Ts...>(std::forward<Args>(args)...);

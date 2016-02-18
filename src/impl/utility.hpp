@@ -102,17 +102,17 @@ decltype(auto) invoke(F&& f, T&& t)
 }
 
 template <typename T, typename... C>
-void constexpr validate_component() noexcept
+void constexpr validate_component(TypeList<C...>) noexcept
 {
 	static_assert(is_any<T, C...>{}, "Invalid component type");
 }
 
 template <typename... C, typename... T>
-void constexpr validate_components(TypeList<C...>, TypeList<T...>) noexcept
+void constexpr validate_components(TypeList<C...> c, TypeList<T...>) noexcept
 {
 	(void)expand
 	{(
-		validate_component<T, C...>(), 0
+		validate_component<T, C...>(c), 0
 	)...};
 }
 

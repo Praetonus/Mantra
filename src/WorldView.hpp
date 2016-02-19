@@ -49,7 +49,7 @@ namespace mantra
 template <typename W, typename P, typename... C>
 class WorldView final
 {
-	using WC = impl::WorldCont<typename W::Components>;
+	using WC = impl::WorldCont<typename W::Components, typename W::Systems>;
 
 	class EntityIterator : public std::iterator<
 	                                std::forward_iterator_tag,
@@ -103,7 +103,7 @@ class WorldView final
 	};
 
 	public:
-	WorldView(typename WC::EntCont&, typename WC::CompCont&) noexcept;
+	WorldView(typename WC::EntCont&, typename WC::CompCont&, typename WC::SysCont&) noexcept;
 
 	WorldView(WorldView const&) = delete;
 	WorldView& operator=(WorldView const&) = delete;
@@ -121,9 +121,13 @@ class WorldView final
 
 	Entities entities();
 
+	template <typename S, typename A>
+	void message(A&&);
+
 	private:
 	typename WC::EntCont& entities_;
 	typename WC::CompCont& components_;
+	typename WC::SysCont& systems_;
 };
 
 } // namespace mantra

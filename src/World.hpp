@@ -86,6 +86,9 @@ class World<CL<C...>, SL<S...>> final
 
 	void update();
 
+	template <typename T, typename A>
+	void message(A&&);
+
 	private:
 	template <typename T, typename P, typename... O>
 	void update_(impl::TypeList<O...>);

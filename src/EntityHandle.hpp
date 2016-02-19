@@ -44,7 +44,7 @@ class EntityHandle final
 	: public impl::DebugHandle<typename W::Components>
 #endif
 {
-	using WC = impl::WorldCont<typename W::Components>;
+	using WC = impl::WorldCont<typename W::Components, typename W::Systems>;
 
 	public:
 	EntityHandle(typename WC::EntCont&, std::size_t);

@@ -39,8 +39,9 @@ namespace mantra
 {
 
 template <typename W, typename P, typename... C>
-WorldView<W, P, C...>::WorldView(typename WC::EntCont& entities, typename WC::CompCont& components) noexcept
-	: entities_{entities}, components_{components}
+WorldView<W, P, C...>::WorldView(typename WC::EntCont& entities, typename WC::CompCont& components,
+                                 typename WC::SysCont& systems) noexcept
+	: entities_{entities}, components_{components}, systems_{systems}
 {
 	impl::validate_components(typename W::Components{}, impl::TypeList<C...>{});
 }
@@ -85,6 +86,13 @@ template <typename W, typename P, typename... C>
 typename WorldView<W, P, C...>::Entities WorldView<W, P, C...>::entities()
 {
 	return WorldView<W, P, C...>::Entities{*this};
+}
+
+template <typename W, typename P, typename... C>
+template <typename T, typename A>
+void WorldView<W, P, C...>::message(A&& arg)
+{
+	std::get<T>(systems_).receive(std::forward<A>(arg));
 }
 
 template <typename W, typename P, typename... C>

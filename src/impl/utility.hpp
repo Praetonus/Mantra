@@ -119,14 +119,15 @@ void constexpr validate_components(TypeList<C...> c, TypeList<T...>) noexcept
 template <typename... Ts>
 class Entity;
 
-template <typename T>
+template <typename C, typename S>
 struct WorldCont;
 
-template <typename... Ts>
-struct WorldCont<TypeList<Ts...>>
+template <typename... C, typename... S>
+struct WorldCont<TypeList<C...>, TypeList<S...>>
 {
-	using EntCont = std::vector<Entity<Ts...>>;
-	using CompCont = std::tuple<std::vector<boost::optional<Ts>>...>;
+	using EntCont = std::vector<Entity<C...>>;
+	using CompCont = std::tuple<std::vector<boost::optional<C>>...>;
+	using SysCont = std::tuple<S...>;
 };
 
 } // namespace impl

@@ -100,11 +100,18 @@ void World<CL<C...>, SL<S...>>::update()
 }
 
 template <typename... C, typename... S>
+template <typename T, typename A>
+void World<CL<C...>, SL<S...>>::message(A&& arg)
+{
+	std::get<T>(systems_).receive(std::forward<A>(arg));
+}
+
+template <typename... C, typename... S>
 template <typename T, typename P, typename... O>
 void World<CL<C...>, SL<S...>>::update_(impl::TypeList<O...>)
 {
 	using TP = std::conditional_t<std::is_same<P, void>{}, void const, P>;
-	std::get<T>(systems_).update(WorldView<Self, TP, O...>{entities_, components_});
+	std::get<T>(systems_).update(WorldView<Self, TP, O...>{entities_, components_, systems_});
 }
 
 } // namespace mantra

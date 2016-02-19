@@ -128,6 +128,7 @@ struct WorldCont<TypeList<C...>, TypeList<S...>>
 	using EntCont = std::vector<Entity<C...>>;
 	using CompCont = std::tuple<std::vector<boost::optional<C>>...>;
 	using SysCont = std::tuple<S...>;
+	using Caches = std::array<std::vector<std::size_t>, sizeof...(C) + 1>;
 };
 
 } // namespace impl

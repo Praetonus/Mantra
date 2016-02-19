@@ -96,6 +96,8 @@ class World<CL<C...>, SL<S...>> final
 	std::vector<impl::Entity<C...>> entities_;
 	std::tuple<std::vector<boost::optional<C>>...> components_;
 	std::tuple<S...> systems_;
+
+	std::array<std::vector<std::size_t>, sizeof...(C) + 1> free_caches_;
 };
 
 template <typename... C, typename... S>

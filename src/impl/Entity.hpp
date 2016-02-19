@@ -115,6 +115,7 @@ class Entity
 	using Comps = std::tuple<std::vector<boost::optional<C>>...>;
 	template <typename T>
 	using CompVec = std::vector<boost::optional<T>>;
+	using Caches = std::array<std::vector<std::size_t>, sizeof...(C) + 1>;
 
 	template <std::size_t I, typename T, typename... Cs>
 	struct TypeToIndex : std::integral_constant<std::size_t, 0>
@@ -129,11 +130,11 @@ class Entity
 	{};
 
 	public:
-	Entity(Comps& comps) : comps_{comps}, comps_idx_{},
+	Entity(Comps& comps, Caches& caches, std::size_t idx) : comps_{comps}, comps_idx_{}, free_caches_{caches},
 #ifndef NDEBUG
-	handles_{},
+		handles_{},
 #endif // NDEBUG
-	exists_{false}
+		index_{idx}, exists_{false}
 	{
 		comps_idx_.fill(-1);
 	}
@@ -142,10 +143,11 @@ class Entity
 	Entity& operator=(Entity const&) = delete;
 
 	Entity(Entity&& mv) noexcept : comps_{mv.comps_}, comps_idx_{std::move(mv.comps_idx_)},
+		free_caches_{mv.free_caches_},
 #ifndef NDEBUG
-	handles_{std::move(mv.handles_)},
+		handles_{std::move(mv.handles_)},
 #endif // NDEBUG
-	exists_{mv.exists_}
+		index_{mv.index_}, exists_{mv.exists_}
 	{
 		mv.exists_ = false;
 	}
@@ -191,11 +193,13 @@ class Entity
 		auto it = std::begin(comps_idx_);
 		(void)expand
 		{(
-			*it != -1 ? (void)(std::get<CompVec<C>>(comps_)[static_cast<std::size_t>(*it++)] = boost::none)
+			*it != -1 ? (void)((std::get<CompVec<C>>(comps_)[static_cast<std::size_t>(*it)] = boost::none)
+			          , free_caches_[TypeToIndex<1, C, C...>()].emplace_back(*it++))
 			          : (void)++it, 0
 		)...};
 		std::fill(std::begin(comps_idx_), std::end(comps_idx_), -1);
 		exists_ = false;
+		free_caches_[0].emplace_back(index_);
 	}
 
 	operator bool() const noexcept
@@ -342,23 +346,35 @@ class Entity
 	template <typename T, typename Tuple, typename... Ts>
 	void assign_comp_(CompVec<T>& comps, Tuple&& args, TypeList<Ts...>)
 	{
-		auto it = std::find_if(std::begin(comps), std::end(comps),
-		                       [](auto const& e){return !e;});
-		if (it == std::end(comps))
+		auto it = std::begin(comps);
+		if (!free_caches_[TypeToIndex<1, T, C...>()].empty())
 		{
-			comps.emplace_back();
-			it = std::end(comps) - 1;
+			auto index = free_caches_[TypeToIndex<1, T, C...>()].back();
+			free_caches_[TypeToIndex<1, T, C...>()].pop_back();
+			it += static_cast<std::ptrdiff_t>(index);
+		}
+		else
+		{
+			it = std::find_if(std::begin(comps), std::end(comps),
+			                  [](auto const& e){return !e;});
+			if (it == std::end(comps))
+			{
+				comps.emplace_back();
+				it = std::end(comps) - 1;
+			}
 		}
 		invoke([it](auto&&... a){it->emplace(std::forward<decltype(a)>(a)...);},
 		       std::forward<Tuple>(args));
-		comps_idx_[TypeToIndex<0, T, C...>()] = std::distance(std::begin(comps), it);
+		comps_idx_[TypeToIndex<0, T, C...>()] = it - std::begin(comps);
 	}
 
 	Comps& comps_;
 	std::array<long, sizeof...(C)> comps_idx_;
+	Caches& free_caches_;
 #ifndef NDEBUG
 	std::vector<DebugHandle<TypeList<C...>>*> handles_;
 #endif // NDEBUG
+	std::size_t index_;
 	bool exists_;
 };
 

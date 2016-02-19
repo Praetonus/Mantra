@@ -103,7 +103,8 @@ class WorldView final
 	};
 
 	public:
-	WorldView(typename WC::EntCont&, typename WC::CompCont&, typename WC::SysCont&) noexcept;
+	WorldView(typename WC::EntCont&, typename WC::CompCont&, typename WC::SysCont&,
+	          typename WC::Caches&) noexcept;
 
 	WorldView(WorldView const&) = delete;
 	WorldView& operator=(WorldView const&) = delete;
@@ -128,6 +129,7 @@ class WorldView final
 	typename WC::EntCont& entities_;
 	typename WC::CompCont& components_;
 	typename WC::SysCont& systems_;
+	typename WC::Caches& free_caches_;
 };
 
 } // namespace mantra

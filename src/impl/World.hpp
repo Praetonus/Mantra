@@ -43,7 +43,7 @@ namespace mantra
 
 template <typename... C, typename... S>
 World<CL<C...>, SL<S...>>::World() noexcept
-	: entities_{}, components_{}, systems_{}
+	: entities_{}, components_{}, systems_{}, free_caches_{}
 {
 	(void)impl::expand{(impl::validate_components(impl::TypeList<C...>{}, typename S::Components{}), 0)...};
 }
@@ -61,15 +61,25 @@ auto World<CL<C...>, SL<S...>>::create_entity() -> EntityHandle<Self, void, C...
 	impl::TypeList<Ts...> comp_types{};
 	impl::validate_components(impl::TypeList<C...>{}, comp_types);
 
-	auto it = std::find_if(std::begin(entities_), std::end(entities_),
-	                       [](auto const& e){return !e;});
-	if (it == std::end(entities_))
+	auto it = std::begin(entities_);
+	if (!free_caches_[0].empty())
 	{
-		entities_.emplace_back(components_);
-		it = std::end(entities_) - 1;
+		auto index = free_caches_[0].back();
+		free_caches_[0].pop_back();
+		it += static_cast<std::ptrdiff_t>(index);
+	}
+	else
+	{
+		it = std::find_if(std::begin(entities_), std::end(entities_),
+		                  [](auto const& e){return !e;});
+		if (it == std::end(entities_))
+		{
+			entities_.emplace_back(components_, free_caches_, entities_.size());
+			it = std::end(entities_) - 1;
+		}
 	}
 	it->create(comp_types);
-	return {entities_, static_cast<std::size_t>(std::distance(std::begin(entities_), it))};
+	return {entities_, static_cast<std::size_t>(it - std::begin(entities_))};
 }
 
 template <typename... C, typename... S>
@@ -79,15 +89,25 @@ auto World<CL<C...>, SL<S...>>::create_entity(Args&&... args) -> EntityHandle<Se
 	impl::TypeList<Ts...> comp_types{};
 	impl::validate_components(impl::TypeList<C...>{}, comp_types);
 
-	auto it = std::find_if(std::begin(entities_), std::end(entities_),
-	                       [](auto const& e){return !e;});
-	if (it == std::end(entities_))
+	auto it = std::begin(entities_);
+	if (!free_caches_[0].empty())
 	{
-		entities_.emplace_back(components_);
-		it = std::end(entities_) - 1;
+		auto index = free_caches_[0].back();
+		free_caches_[0].pop_back();
+		it += static_cast<std::ptrdiff_t>(index);
+	}
+	else
+	{
+		it = std::find_if(std::begin(entities_), std::end(entities_),
+		                  [](auto const& e){return !e;});
+		if (it == std::end(entities_))
+		{
+			entities_.emplace_back(components_, free_caches_, entities_.size());
+			it = std::end(entities_) - 1;
+		}
 	}
 	it->create(comp_types, std::forward<Args>(args)...);
-	return {entities_, static_cast<std::size_t>(std::distance(std::begin(entities_), it))};
+	return {entities_, static_cast<std::size_t>(it - std::begin(entities_))};
 }
 
 template <typename... C, typename... S>
@@ -111,7 +131,7 @@ template <typename T, typename P, typename... O>
 void World<CL<C...>, SL<S...>>::update_(impl::TypeList<O...>)
 {
 	using TP = std::conditional_t<std::is_same<P, void>{}, void const, P>;
-	std::get<T>(systems_).update(WorldView<Self, TP, O...>{entities_, components_, systems_});
+	std::get<T>(systems_).update(WorldView<Self, TP, O...>{entities_, components_, systems_, free_caches_});
 }
 
 } // namespace mantra

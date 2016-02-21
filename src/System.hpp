@@ -73,13 +73,13 @@ class System
 	System() {}
 	
 	/**
-	 * \brief `System` is not copy constructible
+	 * \brief `System` is default copy constructible
 	 */
-	System(System const&) = delete;
+	System(System const&) = default;
 	/**
-	 * \brief `System` is not copy assignable
+	 * \brief `System` is default copy assignable
 	 */
-	System& operator=(System const&) = delete;
+	System& operator=(System const&) = default;
 
 	/**
 	 * \brief `System` is default move constructible

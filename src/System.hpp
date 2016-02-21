@@ -41,24 +41,79 @@
 namespace mantra
 {
 
+/**
+ * \brief Helper class for systems
+ * 
+ * You can inherit from this class to create systems.
+ * 
+ * \tparam P Primary component type. The primary component is the only writable component.
+ * If `P` is void, there is no primary component and the system can't write to anything
+ * \tparam C Secondary components types. Secondary components are read-only. The system will only be able to
+ * access entities that possess all secondary components and the primary component, if any
+ * \note Inheriting from System is a convenience, but it is not mandatory. You can create your own isolated
+ * class and provide
+ * \arg A type named `Primary`, which can be `void`
+ * \arg A type named `Components` defined as `ComponentList<C...>`, with `C` the list of components types
+ * which should include `Primary` if it is not `void`, and should not include it if it is
+ * \arg A function `void %update(WV&&)` with `WV` template
+ */
 template <typename P, typename... C>
 class System
 {
 	public:
+	//! \cond
 	using Primary = P;
 	using Components = std::conditional_t<std::is_same<P, void>{},
 	                                      impl::TypeList<C...>, impl::TypeList<P, C...>>;
-	
+	//! \endcond
+
+	/**
+	 * \brief Constructor
+	 */
 	System() {}
 	
+	/**
+	 * \brief `System` is not copy constructible
+	 */
 	System(System const&) = delete;
+	/**
+	 * \brief `System` is not copy assignable
+	 */
 	System& operator=(System const&) = delete;
 
+	/**
+	 * \brief `System` is default move constructible
+	 */
 	System(System&&) = default;
+	/**
+	 * \brief `System` is default move assignable
+	 */
 	System& operator=(System&&) = default;
 
+	/**
+	 * \brief Update function
+	 * 
+	 * Redefine this in your system class. The function will be called by the `World` on each frame.
+	 * 
+	 * \param wv A `WorldView` corresponding to the system's component types. This is template to allow the
+	 * use of the system with different `World` types
+	 */
 	template <typename WV>
-	void update(WV&&) {}
+	void update(WV&& wv);
+
+#ifdef DOXYGEN_ONLY
+	//! \cond
+	using Type = int;
+	//! \endcond
+
+	/**
+	 * \brief Receive messages
+	 * 
+	 * Define this function to handle messages sent to this system. `Type` can be any type and you can define
+	 * as much overloads as you need (one per message type).
+	 */
+	void receive(Type);
+#endif
 
 	protected:
 	~System() = default;

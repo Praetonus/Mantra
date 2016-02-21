@@ -46,6 +46,15 @@
 namespace mantra
 {
 
+/**
+ * \brief View of a World from a system
+ * 
+ * \tparam W Associated `World` type
+ * \tparam P Primary component type
+ * \tparam C Secondary component types
+ * 
+ * \note Instances are created and returned by the library and should not be created directly by the user.
+ */
 template <typename W, typename P, typename... C>
 class WorldView final
 {
@@ -103,27 +112,80 @@ class WorldView final
 	};
 
 	public:
+	//! \cond
 	WorldView(typename WC::EntCont&, typename WC::CompCont&, typename WC::SysCont&,
 	          typename WC::Caches&) noexcept;
+	//! \endcond
 
+	/**
+	 * \brief `WorldView` is not copy constructible
+	 */
 	WorldView(WorldView const&) = delete;
+	/**
+	 * \brief `WorldView` is not copy assignable
+	 */
 	WorldView& operator=(WorldView const&) = delete;
 	
+	/**
+	 * \brief `WorldView` is not move constructible
+	 */
 	WorldView(WorldView&&) = delete;
+	/**
+	 * \brief `WorldView` is not move assignable
+	 */
 	WorldView& operator=(WorldView&&) = delete;
 
+	/**
+	 * \brief `WorldView` is default destructible
+	 */
 	~WorldView() = default;
 
+	/**
+	 * \brief Create a new entity
+	 * 
+	 * Default-constructs the components
+	 * 
+	 * \tparam Ts Components the new entity will have
+	 * \return An `EntityHandle` for the new entity
+	 * \note The return type of this function is complex. It is advised to use automatic type deduction.
+	 */
 	template <typename... Ts>
 	EntityHandle<W, P, C...> create_entity();
 
+	/**
+	 * \brief Create a new entity
+	 * 
+	 * Constructs the components with args
+	 * 
+	 * \tparam Ts Components the new entity will have
+	 * \param args A pack of tuples holding the parameters to construct each component
+	 * \return An `EntityHandle` for the new entity
+	 * \note The return type of this function is complex. It is advised to use automatic type deduction.
+	 */
 	template <typename... Ts, typename... Args>
-	EntityHandle<W, P, C...> create_entity(Args&&...);
+	EntityHandle<W, P, C...> create_entity(Args&&... args);
 
+	/**
+	 * \brief Iterator interface for entities
+	 * 
+	 * \return An object with `begin()` and `end()` functions, which can be used to obtain iterators over
+	 * the entities visible by this `WorldView`, via `EntityHandle`s.
+	 * \note The iterators meet the requirements of `ForwardIterator`.
+	 * \note If an entity is destroyed, iterators referencing this entity are invalidated.
+	 */
 	Entities entities();
 
+	/**
+	 * \brief Send a message to a system
+	 * 
+	 * Calls the system's `receive(A)` function.
+	 * 
+	 * \tparam S The type of the system
+	 * \param arg The object to send
+	 * \note The message is handled immediately in the same thread.
+	 */
 	template <typename S, typename A>
-	void message(A&&);
+	void message(A&& arg);
 
 	private:
 	typename WC::EntCont& entities_;

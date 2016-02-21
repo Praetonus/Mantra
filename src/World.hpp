@@ -42,52 +42,126 @@
 #include "EntityHandle.hpp"
 #include "impl/utility.hpp"
 
+/**
+ * \brief Library namespace
+ */
 namespace mantra
 {
 
+/**
+ * \brief Helper type for component sets
+ */
 template <typename... C>
 using ComponentList = impl::TypeList<C...>;
 
-template <typename... C>
-using CL = ComponentList<C...>;
-
+/**
+ * \brief Helper type for system sets
+ */
 template <typename... S>
 using SystemList = impl::TypeList<S...>;
+
+//! \cond
+template <typename... C>
+using CL = ComponentList<C...>;
 
 template <typename... S>
 using SL = SystemList<S...>;
 
 template <typename Comp, typename Sys>
-class World final {private: World() {}};
+class World;
+//! \endcond
 
+/**
+ * \brief Main library class
+ * 
+ * The `World` holds entities and manages systems.
+ * 
+ * \tparam C The set of components types.
+ * \tparam S The set of systems types.
+ */
 template <typename... C, typename... S>
-class World<CL<C...>, SL<S...>> final
+class World<ComponentList<C...>, SystemList<S...>> final
 {
 	using Self = World<CL<C...>, SL<S...>>;
 	public:
+	//! \cond
 	using Components = CL<C...>;
 	using Systems = SL<S...>;
+	//! \endcond
 	
+	/**
+	 * \brief Constructor
+	 */
 	World() noexcept;
 
+	/**
+	 * \brief `World` is not copy constructible
+	 */
 	World(World const&) = delete;
+	/**
+	 * \brief `World` is not copy assignable
+	 */
 	World& operator=(World const&) = delete;
 
+	/**
+	 * \brief `World` is default move constructible
+	 */
 	World(World&&) = default;
+	/**
+	 * \brief `World` is default move assignable
+	 */
 	World& operator=(World&&) = default;
 
+	/**
+	 * \brief Destructor
+	 */
 	~World();
 
+	/**
+	 * \brief Create a new entity
+	 * 
+	 * Default-constructs the components
+	 * 
+	 * \tparam Ts Components the new entity will have
+	 * \return An `EntityHandle` for the new entity
+	 * \note The return type of this function is complex. It is advised to use automatic type deduction.
+	 */
 	template <typename... Ts>
 	EntityHandle<Self, void, C...> create_entity();
 
+	/**
+	 * \brief Create a new entity
+	 * 
+	 * Constructs the components with args
+	 * 
+	 * \tparam Ts Components the new entity will have
+	 * \param args A pack of tuples holding the parameters to construct each component
+	 * \return An `EntityHandle` for the new entity
+	 * \note The return type of this function is complex. It is advised to use automatic type deduction.
+	 */
 	template <typename... Ts, typename... Args>
-	EntityHandle<Self, void, C...> create_entity(Args&&...);
+	EntityHandle<Self, void, C...> create_entity(Args&&... args);
 
+	/**
+	 * \brief Run a frame of the world
+	 * 
+	 * Each system is updated once.
+	 * 
+	 * \note The systems are updated sequentially, in the order in which they appear in `S`.
+	 */
 	void update();
 
+	/**
+	 * \brief Send a message to a system
+	 * 
+	 * Calls the system's `receive(A)` function.
+	 * 
+	 * \tparam T The type of the system
+	 * \param arg The object to send
+	 * \note The message is handled immediately in the same thread.
+	 */
 	template <typename T, typename A>
-	void message(A&&);
+	void message(A&& arg);
 
 	private:
 	template <typename T, typename P, typename... O>
@@ -100,8 +174,14 @@ class World<CL<C...>, SL<S...>> final
 	std::array<std::vector<std::size_t>, sizeof...(C) + 1> free_caches_;
 };
 
+/**
+ * \brief Helper function to create a World
+ *
+ * \tparam C The set of components types.
+ * \tparam S The set of systems types.
+ */
 template <typename... C, typename... S>
-auto create_world(CL<C...>, SL<S...>)
+auto create_world(ComponentList<C...>, SystemList<S...>)
 {
 	return World<CL<C...>, SL<S...>>{};
 }

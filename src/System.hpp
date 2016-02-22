@@ -50,7 +50,7 @@ namespace mantra
  * If `P` is void, there is no primary component and the system can't write to anything
  * \tparam C Secondary components types. Secondary components are read-only. The system will only be able to
  * access entities that possess all secondary components and the primary component, if any
- * \note Inheriting from System is a convenience, but it is not mandatory. You can create your own isolated
+ * \note Inheriting from `System` is a convenience, but it is not mandatory. You can create your own isolated
  * class and provide
  * \arg A type named `Primary`, which can be `void`
  * \arg A type named `Components` defined as `ComponentList<C...>`, with `C` the list of components types
@@ -68,9 +68,9 @@ class System
 	//! \endcond
 
 	/**
-	 * \brief Constructor
+	 * \brief `System` is default constructible
 	 */
-	System() {}
+	System() = default;
 	
 	/**
 	 * \brief `System` is default copy constructible
@@ -116,6 +116,10 @@ class System
 #endif
 
 	protected:
+	/**
+	 * \brief
+	 * `System` is default destructible
+	 */
 	~System() = default;
 };
 

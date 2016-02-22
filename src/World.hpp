@@ -178,6 +178,24 @@ class World<ComponentList<C...>, SystemList<S...>> final
 	template <typename T, typename A>
 	void message(A&& arg);
 
+	/**
+	 * \brief Reserve space for future entities
+	 * 
+	 * \param n Number of entities to reserve. It is guaranteed that at least `n` new entities can be
+	 * created without storage reallocation
+	 */
+	void reserve_entities(std::size_t n);
+
+	/**
+	 * \brief Reserve space for future components
+	 *
+	 * \tparam T Type of the components
+	 * \param n Number of components to reserve. It is guaranteed that at least `n` new components can be
+	 * created without storage reallocation
+	 */
+	template <typename T>
+	void reserve_components(std::size_t n);
+
 	private:
 	template <typename T, typename P, typename... O>
 	void update_(impl::TypeList<O...>);

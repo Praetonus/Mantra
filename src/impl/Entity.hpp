@@ -117,18 +117,6 @@ class Entity
 	using CompVec = std::vector<boost::optional<T>>;
 	using Caches = std::array<std::vector<std::size_t>, sizeof...(C) + 1>;
 
-	template <std::size_t I, typename T, typename... Cs>
-	struct TypeToIndex : std::integral_constant<std::size_t, 0>
-	{};
-
-	template <std::size_t I, typename T, typename U, typename... Cs>
-	struct TypeToIndex<I, T, U, Cs...> : std::integral_constant<std::size_t, TypeToIndex<I+1, T, Cs...>{}>
-	{};
-
-	template <std::size_t I, typename T, typename... Cs>
-	struct TypeToIndex<I, T, T, Cs...> : std::integral_constant<std::size_t, I>
-	{};
-
 	public:
 	Entity(Comps& comps, Caches& caches, std::size_t idx) : comps_{comps}, comps_idx_{}, free_caches_{caches},
 #ifndef NDEBUG
@@ -194,7 +182,7 @@ class Entity
 		(void)expand
 		{(
 			*it != -1 ? (void)((std::get<CompVec<C>>(comps_)[static_cast<std::size_t>(*it)] = boost::none)
-			          , free_caches_[TypeToIndex<1, C, C...>()].emplace_back(*it++))
+			          , free_caches_[impl::TypeToIndex<1, C, C...>()].emplace_back(*it++))
 			          : (void)++it, 0
 		)...};
 		std::fill(std::begin(comps_idx_), std::end(comps_idx_), -1);
@@ -215,7 +203,7 @@ class Entity
 	template <typename T>
 	T& get_component() noexcept
 	{
-		auto idx = comps_idx_[TypeToIndex<0, T, C...>()];
+		auto idx = comps_idx_[impl::TypeToIndex<0, T, C...>()];
 		assert(exists_ && "Entity doesn't exists");
 		assert((idx != -1) && "Entity doesn't have this component");
 		
@@ -225,7 +213,7 @@ class Entity
 	template <typename T>
 	std::enable_if_t<!std::is_pointer<T>{}, T> const& get_component() const noexcept
 	{
-		auto idx = comps_idx_[TypeToIndex<0, T, C...>()];
+		auto idx = comps_idx_[impl::TypeToIndex<0, T, C...>()];
 		assert(exists_ && "Entity doesn't exists");
 		assert((idx != -1) && "Entity doesn't have this component");
 
@@ -236,7 +224,7 @@ class Entity
 	std::enable_if_t<std::is_pointer<P>{}, std::remove_pointer_t<P>> const* const&
 		get_pointer() const noexcept
 	{
-		auto idx = comps_idx_[TypeToIndex<0, P, C...>()];
+		auto idx = comps_idx_[impl::TypeToIndex<0, P, C...>()];
 		assert(exists_ && "Entity doesn't exists");
 		assert((idx != -1) && "Entity doesn't have this component");
 
@@ -250,7 +238,7 @@ class Entity
 	{
 		assert(exists_ && "Entity doesn't exists");
 		
-		for (auto i : {TypeToIndex<0, Ts, C...>::value...})
+		for (auto i : {impl::TypeToIndex<0, Ts, C...>::value...})
 		{
 			if (comps_idx_[i] == -1)
 				return false;
@@ -263,7 +251,7 @@ class Entity
 	{
 		assert(exists_ && "Entity doesn't exists");
 #ifndef NDEBUG	
-		assert((comps_idx_[TypeToIndex<0, T, C...>()] == -1) && "Entity already has this component");
+		assert((comps_idx_[impl::TypeToIndex<0, T, C...>()] == -1) && "Entity already has this component");
 #endif
 		
 		assign_comp_(std::get<CompVec<T>>(comps_), std::forward_as_tuple(std::forward<Args>(args)...),
@@ -277,7 +265,7 @@ class Entity
 #ifndef NDEBUG	
 		(void)expand
 		{(
-			assert((comps_idx_[TypeToIndex<0, Ts, C...>()] == -1) && "Entity already has this component"), 0
+			assert((comps_idx_[impl::TypeToIndex<0, Ts, C...>()] == -1) && "Entity already has this component"), 0
 		)...};
 #endif
 		(void)expand
@@ -294,7 +282,7 @@ class Entity
 #ifndef NDEBUG	
 		(void)expand
 		{(
-			assert((comps_idx_[TypeToIndex<0, Ts, C...>()] == -1) && "Entity already has this component"), 0
+			assert((comps_idx_[impl::TypeToIndex<0, Ts, C...>()] == -1) && "Entity already has this component"), 0
 		)...};
 #endif
 		
@@ -311,15 +299,15 @@ class Entity
 #ifndef NDEBUG
 		(void)expand
 		{(
-			assert((comps_idx_[TypeToIndex<0, Ts, C...>()] != -1) && "Entity doesn't have this component"), 0
+			assert((comps_idx_[impl::TypeToIndex<0, Ts, C...>()] != -1) && "Entity doesn't have this component"), 0
 		)...};
 #endif
 		
 		(void)expand
 		{(
 			std::get<CompVec<Ts>>(comps_)
-				[static_cast<std::size_t>(comps_idx_[TypeToIndex<0, Ts, C...>()])] = boost::none,
-			comps_idx_[TypeToIndex<0, Ts, C...>()] = -1, 0
+				[static_cast<std::size_t>(comps_idx_[impl::TypeToIndex<0, Ts, C...>()])] = boost::none,
+			comps_idx_[impl::TypeToIndex<0, Ts, C...>()] = -1, 0
 		)...};
 	}
 	
@@ -347,10 +335,10 @@ class Entity
 	void assign_comp_(CompVec<T>& comps, Tuple&& args, TypeList<Ts...>)
 	{
 		auto it = std::begin(comps);
-		if (!free_caches_[TypeToIndex<1, T, C...>()].empty())
+		if (!free_caches_[impl::TypeToIndex<1, T, C...>()].empty())
 		{
-			auto index = free_caches_[TypeToIndex<1, T, C...>()].back();
-			free_caches_[TypeToIndex<1, T, C...>()].pop_back();
+			auto index = free_caches_[impl::TypeToIndex<1, T, C...>()].back();
+			free_caches_[impl::TypeToIndex<1, T, C...>()].pop_back();
 			it += static_cast<std::ptrdiff_t>(index);
 		}
 		else
@@ -365,7 +353,7 @@ class Entity
 		}
 		invoke([it](auto&&... a){it->emplace(std::forward<decltype(a)>(a)...);},
 		       std::forward<Tuple>(args));
-		comps_idx_[TypeToIndex<0, T, C...>()] = it - std::begin(comps);
+		comps_idx_[impl::TypeToIndex<0, T, C...>()] = it - std::begin(comps);
 	}
 
 	Comps& comps_;

@@ -116,6 +116,27 @@ void WorldView<W, P, C...>::message(A&& arg)
 }
 
 template <typename W, typename P, typename... C>
+void WorldView<W, P, C...>::reserve_entities(std::size_t n)
+{
+	if (free_caches_[0].size() < n)
+		entities_.reserve(entities_.size() + n - free_caches_[0].size());
+}
+
+template <typename W, typename P, typename... C>
+template <typename T>
+void WorldView<W, P, C...>::reserve_components(std::size_t n)
+{
+	impl::validate_component<T>(typename W::Components{});
+
+	auto& cache = free_caches_[impl::TypeToIndex<1, T, C...>()];
+	if (cache.size() < n)
+	{
+		auto& comps = std::get<std::vector<boost::optional<T>>>(components_);
+		comps.reserve(comps.size() + n - cache.size());
+	}
+}
+
+template <typename W, typename P, typename... C>
 WorldView<W, P, C...>::Entities::Entities(WorldView<W, P, C...>& view)
 	: view_{view}
 {}
@@ -142,13 +163,9 @@ WorldView<W, P, C...>::EntityIterator::EntityIterator(WorldView<W, P, C...>& vie
 	: view_{&view}, handle_{}, index_{0}
 {
 	if (view_->entities_.empty())
-	{
 		view_ = nullptr;
-		return;
-	}
-	if (view_->entities_[0] && view_->entities_[0].template has_components<C...>())
-		return;
-	find_next_();
+	else if (!view_->entities_[0] || !view_->entities_[0].template has_components<C...>())
+		find_next_();
 }
 
 template <typename W, typename P, typename... C>

@@ -60,6 +60,18 @@ struct is_any<T, First, Others...>
 	: std::integral_constant<bool, std::is_same<T, First>{} || is_any<T, Others...>{}>
 {};
 
+template <std::size_t I, typename T, typename... Cs>
+struct TypeToIndex : std::integral_constant<std::size_t, 0>
+{};
+
+template <std::size_t I, typename T, typename U, typename... Cs>
+struct TypeToIndex<I, T, U, Cs...> : std::integral_constant<std::size_t, TypeToIndex<I+1, T, Cs...>{}>
+{};
+
+template <std::size_t I, typename T, typename... Cs>
+struct TypeToIndex<I, T, T, Cs...> : std::integral_constant<std::size_t, I>
+{};
+
 template <typename... Ts>
 struct TypeList
 {

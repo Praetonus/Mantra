@@ -135,6 +135,27 @@ void World<CL<C...>, SL<S...>>::message(A&& arg)
 }
 
 template <typename... C, typename... S>
+void World<CL<C...>, SL<S...>>::reserve_entities(std::size_t n)
+{
+	if (free_caches_[0].size() < n)
+		entities_.reserve(entities_.size() + n - free_caches_[0].size());
+}
+
+template <typename... C, typename... S>
+template <typename T>
+void World<CL<C...>, SL<S...>>::reserve_components(std::size_t n)
+{
+	impl::validate_component<T>(impl::TypeList<C...>{});
+
+	auto& cache = free_caches_[impl::TypeToIndex<1, T, C...>()];
+	if (cache.size() < n)
+	{
+		auto& comps = std::get<std::vector<boost::optional<T>>>(components_);
+		comps.reserve(comps.size() + n - cache.size());
+	}
+}
+
+template <typename... C, typename... S>
 template <typename T, typename P, typename... O>
 void World<CL<C...>, SL<S...>>::update_(impl::TypeList<O...>)
 {

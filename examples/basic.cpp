@@ -17,10 +17,11 @@
 #include <mantra/System.hpp>
 #include <mantra/World.hpp>
 
+using Counter = int;
 struct IncTag {};
 struct DecTag {};
 
-class IncSys : public mantra::System<int, IncTag>
+class IncSys : public mantra::System<Counter, IncTag>
 {
 	public:
 	IncSys(int m) : max{m} {}
@@ -30,8 +31,8 @@ class IncSys : public mantra::System<int, IncTag>
 	{
 		for (auto& entity : wv.entities())
 		{
-			if (entity.template get_component<int>() < max)
-				++entity.template get_component<int>();
+			if (entity.template get_component<Counter>() < max)
+				++entity.template get_component<Counter>();
 			else
 			{
 				entity.template remove_components<IncTag>();
@@ -44,7 +45,7 @@ class IncSys : public mantra::System<int, IncTag>
 	int max;
 };
 
-class DecSys : public mantra::System<int, DecTag>
+class DecSys : public mantra::System<Counter, DecTag>
 {
 	public:
 	DecSys(int m) : min{m} {}
@@ -54,8 +55,8 @@ class DecSys : public mantra::System<int, DecTag>
 	{
 		for (auto& entity : wv.entities())
 		{
-			if (entity.template get_component<int>() > min)
-				--entity.template get_component<int>();
+			if (entity.template get_component<Counter>() > min)
+				--entity.template get_component<Counter>();
 			else
 			{
 				entity.template remove_components<DecTag>();
@@ -68,28 +69,28 @@ class DecSys : public mantra::System<int, DecTag>
 	int min;
 };
 
-class DisplaySys : public mantra::System<void, int>
+class DisplaySys : public mantra::System<void, Counter>
 {
 	public:
 	template <typename WV>
 	void update(WV&& wv)
 	{
 		for (auto& entity : wv.entities())
-			std::cout << entity.template get_component<int>() << '\n';
+			std::cout << entity.template get_component<Counter>() << '\n';
 	}
 };
 
 int main()
 {
-	auto comps = mantra::ComponentList<int, IncTag, DecTag>{};
+	auto comps = mantra::ComponentList<Counter, IncTag, DecTag>{};
 	auto sys = mantra::SystemList<IncSys, DecSys, DisplaySys>{};
 
 	auto world = mantra::create_world(comps, sys, std::forward_as_tuple(10), std::forward_as_tuple(-10),
 	                                  std::forward_as_tuple());
 
-	auto e1 = world.create_entity<int, IncTag>();
-	auto e2 = world.create_entity<int, DecTag>(std::forward_as_tuple(5), std::forward_as_tuple());
-	auto e3 = world.create_entity<int>(std::forward_as_tuple(-8));
+	auto e1 = world.create_entity<Counter, IncTag>();
+	auto e2 = world.create_entity<Counter, DecTag>(std::forward_as_tuple(5), std::forward_as_tuple());
+	auto e3 = world.create_entity<Counter>(std::forward_as_tuple(-8));
 
 	e3.add_components<IncTag>();
 

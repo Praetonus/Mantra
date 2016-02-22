@@ -42,8 +42,16 @@ namespace mantra
 {
 
 template <typename... C, typename... S>
-World<CL<C...>, SL<S...>>::World() noexcept
+World<CL<C...>, SL<S...>>::World()
 	: entities_{}, components_{}, systems_{}, free_caches_{}
+{
+	(void)impl::expand{(impl::validate_components(impl::TypeList<C...>{}, typename S::Components{}), 0)...};
+}
+
+template <typename... C, typename... S>
+template <typename... Args>
+World<CL<C...>, SL<S...>>::World(Args&&... args)
+	: entities_{}, components_{}, systems_{impl::construct<S>(std::forward<Args>(args))...}, free_caches_{}
 {
 	(void)impl::expand{(impl::validate_components(impl::TypeList<C...>{}, typename S::Components{}), 0)...};
 }

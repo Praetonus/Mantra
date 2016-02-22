@@ -85,7 +85,7 @@ struct TypeList
 	}
 
 	template <typename... Us>
-	typename std::enable_if<sizeof...(Us) == 0>::type constexpr validate_unicity_() noexcept {}
+	std::enable_if_t<sizeof...(Us) == 0> constexpr validate_unicity_() noexcept {}
 };
 
 template <typename F, typename T, std::size_t... I>
@@ -97,8 +97,21 @@ decltype(auto) invoke_helper(F&& f, T&& t, std::index_sequence<I...>)
 template <typename F, typename T>
 decltype(auto) invoke(F&& f, T&& t)
 {
-	auto constexpr S = std::tuple_size<typename std::decay<T>::type>{};
+	auto constexpr S = std::tuple_size<std::decay_t<T>>{};
 	return invoke_helper(std::forward<F>(f), std::forward<T>(t), std::make_index_sequence<S>{});
+}
+
+template <typename C, typename T, std::size_t... I>
+C construct_helper(T&& t, std::index_sequence<I...>)
+{
+	return C{std::get<I>(std::forward<T>(t))...};
+}
+
+template <typename C, typename T>
+C construct(T&& t)
+{
+	auto constexpr S = std::tuple_size<std::decay_t<T>>{};
+	return construct_helper<C>(std::forward<T>(t), std::make_index_sequence<S>{});
 }
 
 template <typename T, typename... C>

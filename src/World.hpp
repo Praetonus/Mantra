@@ -91,8 +91,23 @@ class World<ComponentList<C...>, SystemList<S...>> final
 	
 	/**
 	 * \brief Constructor
+	 * 
+	 * Default-constructs the systems
+	 * 
+	 * \sa `create_world`
 	 */
-	World() noexcept;
+	World();
+
+	/**
+	 * \brief Constructor
+	 * 
+	 * Constructs the systems with `args`.
+	 * 
+	 * \param args A pack of tuples holding the parameters to construct each system
+	 * \sa `create_world`
+	 */
+	template <typename... Args>
+	World(Args&&... args);
 
 	/**
 	 * \brief `World` is not copy constructible
@@ -120,7 +135,7 @@ class World<ComponentList<C...>, SystemList<S...>> final
 	/**
 	 * \brief Create a new entity
 	 * 
-	 * Default-constructs the components
+	 * Default-constructs the components.
 	 * 
 	 * \tparam Ts Components the new entity will have
 	 * \return An `EntityHandle` for the new entity
@@ -132,7 +147,7 @@ class World<ComponentList<C...>, SystemList<S...>> final
 	/**
 	 * \brief Create a new entity
 	 * 
-	 * Constructs the components with args
+	 * Constructs the components with `args`.
 	 * 
 	 * \tparam Ts Components the new entity will have
 	 * \param args A pack of tuples holding the parameters to construct each component
@@ -175,15 +190,16 @@ class World<ComponentList<C...>, SystemList<S...>> final
 };
 
 /**
- * \brief Helper function to create a World
+ * \brief Helper function to create a `World`
  *
  * \tparam C The set of components types.
  * \tparam S The set of systems types.
+ * \param args A pack of tuples holding the parameters to construct each system
  */
-template <typename... C, typename... S>
-auto create_world(ComponentList<C...>, SystemList<S...>)
+template <typename... C, typename... S, typename... Args>
+auto create_world(ComponentList<C...>, SystemList<S...>, Args&&... args)
 {
-	return World<CL<C...>, SL<S...>>{};
+	return World<CL<C...>, SL<S...>>{std::forward<Args>(args)...};
 }
 
 } // namespace mantra

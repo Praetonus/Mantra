@@ -9,7 +9,7 @@
 // - the display system. It prints the counter to the standard output
 // - the increment system. It takes entities with a counter and an increment tag and increments the counter
 //   by 1 until a given threshold. When that value is reached, the increment tag is removed from the entity
-//   a decrement tag is added
+//   and a decrement tag is added
 // - the decrement system. It does the opposite of the increment system
 
 #include <iostream>

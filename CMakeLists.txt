@@ -30,12 +30,34 @@
  # knowledge of the CeCILL-B license and that you accept its terms.
  #####
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0)
 
 project(mantra)
+
+# Install
 
 file(GLOB headers src/*.hpp)
 file(GLOB impl_headers src/impl/*.hpp)
 
 install(FILES ${headers} DESTINATION ${CMAKE_INSTALL_PREFIX}/include/mantra/)
 install(FILES ${impl_headers} DESTINATION ${CMAKE_INSTALL_PREFIX}/include/mantra/impl)
+
+# Examples
+
+file(GLOB ex_basic examples/basic.cpp)
+
+add_executable(example_basic ${ex_basic})
+
+add_custom_target(examples)
+add_dependencies(examples example_basic)
+
+set_target_properties(example_basic PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+# Documentation
+
+find_package(Doxygen)
+
+if(DOXYGEN_FOUND)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile @ONLY)
+    add_custom_target(doc ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+endif(DOXYGEN_FOUND)

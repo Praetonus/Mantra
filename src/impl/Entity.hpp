@@ -307,6 +307,8 @@ class Entity
 		{(
 			std::get<CompVec<Ts>>(comps_)
 				[static_cast<std::size_t>(comps_idx_[impl::TypeToIndex<0, Ts, C...>()])] = boost::none,
+			free_caches_[impl::TypeToIndex<1, Ts, C...>()].
+				emplace_back(comps_idx_[impl::TypeToIndex<0, Ts, C...>()]),
 			comps_idx_[impl::TypeToIndex<0, Ts, C...>()] = -1, 0
 		)...};
 	}

@@ -51,7 +51,7 @@ World<CL<C...>, SL<S...>>::World()
 template <typename... C, typename... S>
 template <typename... Args>
 World<CL<C...>, SL<S...>>::World(Args&&... args)
-	: entities_{}, components_{}, systems_{impl::construct<S>(std::forward<Args>(args))...}, free_caches_{}
+	: entities_{}, components_{}, systems_{impl::piecewise_construct, std::forward<Args>(args)...}, free_caches_{}
 {
 	(void)impl::expand{(impl::validate_components(impl::TypeList<C...>{}, typename S::Components{}), 0)...};
 }
@@ -131,7 +131,7 @@ template <typename... C, typename... S>
 template <typename T, typename A>
 void World<CL<C...>, SL<S...>>::message(A&& arg)
 {
-	std::get<T>(systems_).receive(std::forward<A>(arg));
+	impl::get<T>(systems_).receive(std::forward<A>(arg));
 }
 
 template <typename... C, typename... S>
@@ -147,10 +147,10 @@ void World<CL<C...>, SL<S...>>::reserve_components(std::size_t n)
 {
 	impl::validate_component<T>(impl::TypeList<C...>{});
 
-	auto& cache = free_caches_[impl::TypeToIndex<1, T, C...>()];
+	auto& cache = free_caches_[impl::index_of<T, C...>()+1];
 	if (cache.size() < n)
 	{
-		auto& comps = std::get<std::vector<boost::optional<T>>>(components_);
+		auto& comps = impl::get<std::vector<boost::optional<T>>>(components_);
 		comps.reserve(comps.size() + n - cache.size());
 	}
 }
@@ -160,7 +160,7 @@ template <typename T, typename P, typename... O>
 void World<CL<C...>, SL<S...>>::update_(impl::TypeList<O...>)
 {
 	using TP = std::conditional_t<std::is_same<P, void>{}, void const, P>;
-	std::get<T>(systems_).update(WorldView<Self, TP, O...>{entities_, components_, systems_, free_caches_});
+	impl::get<T>(systems_).update(WorldView<Self, TP, O...>{entities_, components_, systems_, free_caches_});
 }
 
 } // namespace mantra

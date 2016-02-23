@@ -37,10 +37,9 @@
 #include <array>
 #include <cassert>
 #include <functional>
-#include <tuple>
 
 #include "EntityHandle.hpp"
-#include "impl/utility.hpp"
+#include "tuple_create.hpp"
 
 /**
  * \brief Library namespace
@@ -201,8 +200,8 @@ class World<ComponentList<C...>, SystemList<S...>> final
 	void update_(impl::TypeList<O...>);
 
 	std::vector<impl::Entity<C...>> entities_;
-	std::tuple<std::vector<boost::optional<C>>...> components_;
-	std::tuple<S...> systems_;
+	impl::Tuple<std::vector<boost::optional<C>>...> components_;
+	impl::Tuple<S...> systems_;
 
 	std::array<std::vector<std::size_t>, sizeof...(C) + 1> free_caches_;
 };

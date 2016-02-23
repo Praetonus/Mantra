@@ -112,7 +112,7 @@ template <typename W, typename P, typename... C>
 template <typename T, typename A>
 void WorldView<W, P, C...>::message(A&& arg)
 {
-	std::get<T>(systems_).receive(std::forward<A>(arg));
+	impl::get<T>(systems_).receive(std::forward<A>(arg));
 }
 
 template <typename W, typename P, typename... C>
@@ -128,7 +128,7 @@ void WorldView<W, P, C...>::reserve_components(std::size_t n)
 {
 	impl::validate_component<T>(typename W::Components{});
 
-	auto& cache = free_caches_[impl::TypeToIndex<1, T, C...>()];
+	auto& cache = free_caches_[impl::index_of<T, C...>()+1];
 	if (cache.size() < n)
 	{
 		auto& comps = std::get<std::vector<boost::optional<T>>>(components_);

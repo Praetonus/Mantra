@@ -122,12 +122,12 @@ int main()
     auto comps = mantra::ComponentList<Counter, IncTag, DecTag>{};
     auto sys = mantra::SystemList<IncSys, DecSys, DisplaySys>{};
 
-    auto world = mantra::create_world(comps, sys, std::forward_as_tuple(10), std::forward_as_tuple(-10),
-                                      std::forward_as_tuple());
+    auto world = mantra::create_world(comps, sys, mantra::forward_as_tuple(10), mantra::forward_as_tuple(-10),
+                                      mantra::forward_as_tuple());
 
     auto e1 = world.create_entity<Counter, IncTag>();
-    auto e2 = world.create_entity<Counter, DecTag>(std::forward_as_tuple(5), std::forward_as_tuple());
-    auto e3 = world.create_entity<Counter>(std::forward_as_tuple(-8));
+    auto e2 = world.create_entity<Counter, DecTag>(mantra::forward_as_tuple(5), mantra::forward_as_tuple());
+    auto e3 = world.create_entity<Counter>(mantra::forward_as_tuple(-8));
 
     e3.add_components<IncTag>();
 

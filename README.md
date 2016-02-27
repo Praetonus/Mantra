@@ -10,7 +10,7 @@ Mantra is a header-only library. You can use [CMake](http://www.cmake.org) to in
 
 ## Documentation
 
-You can use [Doxygen](http://www.stack.nl/~dimitri/doxygen/) to generate the library documentation.
+You can use [Doxygen](http://www.stack.nl/~dimitri/doxygen/) to generate the library documentation. There is a CMake target named `doc` for this.
 
 ## License
 

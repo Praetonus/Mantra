@@ -1,4 +1,5 @@
 // Basic example of the library
+// A detailed explanation is available on the Getting Started documentation page
 // 
 // The components are 
 //  - a counter (as an int)

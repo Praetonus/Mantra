@@ -6,6 +6,8 @@ This guide explains how to use the basic features of the library.
 
 As an example, we will implement a very simple ECS. Entities will have a counter component holding an integer and a tag component (increment or decrement). Depending on the tag, the counter will be incremented or decremented by different systems. We'll also have a display system which will print the counter.
 
+\note This example is available in `examples/basic.cpp`.
+
 # Library structure
 
 The classes you'll have to deal with to use the library are
@@ -19,11 +21,11 @@ The classes you'll have to deal with to use the library are
 
 Components are simply types. Fundamental types, pointers, structures or classes, but no references. In this example, we will use an integer type alias for the counter and empty `struct`s for the tags.
 
-```{.cpp}
+~~~~{.cpp}
 using Counter = int;
 struct IncTag {};
 struct DecTag {};
-```
+~~~~
 
 # Systems
 
@@ -41,7 +43,7 @@ We'll start by defining the increment system, which will increment the counter i
 
 The logic of the system is implemented in the `update` function. The parameter is a `WorldView`. Iterating over entities yields `EntityHandle`s. It is not possible to access components that are neither primary nor secondary.
 
-```{.cpp}
+~~~~{.cpp}
 class IncSys : public mantra::System<Counter, IncTag>
 {
     public:
@@ -65,11 +67,11 @@ class IncSys : public mantra::System<Counter, IncTag>
     private:
     int max;
 };
-```
+~~~~
 
 Next is the decrement system, which does the opposite of the increment system.
 
-```{.cpp}
+~~~~{.cpp}
 class DecSys : public mantra::System<Counter, DecTag>
 {
     public:
@@ -93,11 +95,11 @@ class DecSys : public mantra::System<Counter, DecTag>
     private:
     int min;
 };
-```
+~~~~
 
 And last is the display system. It doesn't have a primary component.
 
-```{.cpp}
+~~~~{.cpp}
 class DisplaySys : public mantra::System<void, Counter>
 {
     public:
@@ -108,7 +110,7 @@ class DisplaySys : public mantra::System<void, Counter>
             std::cout << entity.template get_component<Counter>() << '\n';
     }
 };
-```
+~~~~
 
 # World
 
@@ -116,7 +118,7 @@ Now we can create a `World` to use our components and systems together. We'll al
 
 The `World`'s `update` function runs each system once and returns. Systems are updated in the order of the `World`'s system list.
 
-```{.cpp}
+~~~~{.cpp}
 int main()
 {
     auto comps = mantra::ComponentList<Counter, IncTag, DecTag>{};
@@ -139,8 +141,6 @@ int main()
             break;
     }
 }
-```
+~~~~
 
 If you run this example, you'll notice that the counter stays at its minimum for one additional frame. This is caused by the order in which the systems are updated : `IncSys` runs before `DecSys`, so a component can be updated by `IncSys` and then by `DecSys` in the same frame. Be aware of this behavior when writing your own systems.
-
-\note This example is available in `example/basic.cpp`.

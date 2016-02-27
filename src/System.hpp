@@ -44,7 +44,8 @@ namespace mantra
 /**
  * \brief Helper class for systems
  * 
- * You can inherit from this class to create systems.
+ * You can inherit from this class to create systems. Required components are specified in the template
+ * parameters. The logic of the system should be implemented by redefinig the `update` function.
  * 
  * \tparam P Primary component type. The primary component is the only writable component.
  * If `P` is void, there is no primary component and the system can't write to anything

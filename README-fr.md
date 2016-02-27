@@ -10,7 +10,7 @@ Mantra est une bibliothèque comportant uniquement des fichiers d'entête. Vous 
 
 ## Documentation
 
-Vous pouvez utiliser [Doxygen](http://www.stack.nl/~dimitri/doxygen/) pour générer la documentation de la bibliothèque.
+Vous pouvez utiliser [Doxygen](http://www.stack.nl/~dimitri/doxygen/) pour générer la documentation de la bibliothèque. Une cible CMake nommée `doc` est disponible pour ceci.
 
 ## Licence
 

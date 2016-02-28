@@ -30,8 +30,8 @@
  * knowledge of the CeCILL-B license and that you accept its terms.
  *****/
 
-#ifndef MANTRA_IMPL_WORLDVIEW_HPP
-#define MANTRA_IMPL_WORLDVIEW_HPP
+#ifndef MANTRA_IMPL_WORLDVIEWIMPL_HPP
+#define MANTRA_IMPL_WORLDVIEWIMPL_HPP
 
 #include "../WorldView.hpp"
 

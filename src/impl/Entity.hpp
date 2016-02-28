@@ -34,13 +34,11 @@
 #define MANTRA_IMPL_ENTITY_HPP
 
 #include <array>
-#include <cassert>
-#include <functional>
 #include <vector>
 
 #include <boost/optional.hpp>
 
-#include "../tuple_create.hpp"
+#include "utility.hpp"
 
 namespace mantra
 {
@@ -61,43 +59,15 @@ template <typename... C>
 class DebugHandle<TypeList<C...>>
 {
 	public:
-	DebugHandle(std::vector<Entity<C...>>& entities, std::size_t index)
-		: entities_{entities}, index_{index}, valid_{true}
-	{
-		entities_[index_].add_handle(this);
-	}
+	DebugHandle(std::vector<Entity<C...>>&, std::size_t);
 	
-	DebugHandle(DebugHandle const& cp)
-		: entities_{cp.entities_}, index_{cp.index_}, valid_{cp.valid_}
-	{
-		if (valid_)
-			entities_[index_].add_handle(this);
-	}
+	DebugHandle(DebugHandle const&);
 
-	DebugHandle(DebugHandle&& mv)
-		: entities_{mv.entities_}, index_{mv.index_}, valid_{mv.valid_}
-	{
-		if (valid_)
-		{
-			entities_[index_].remove_handle(&mv);
-			mv.valid_ = false;
-			entities_[index_].add_handle(this);
-		}
-	}
+	DebugHandle(DebugHandle&&);
 
-	~DebugHandle()
-	{
-		if (valid_)
-		{
-			entities_[index_].remove_handle(this);
-			valid_ = false;
-		}
-	}
+	~DebugHandle();
 	
-	void invalidate_() noexcept
-	{
-		valid_ = false;
-	}
+	void invalidate_() noexcept;
 
 	private:
 	std::vector<Entity<C...>>& entities_;
@@ -118,244 +88,55 @@ class Entity
 	using Caches = std::array<std::vector<std::size_t>, sizeof...(C) + 1>;
 
 	public:
-	Entity(Comps& comps, Caches& caches, std::size_t idx) : comps_{comps}, comps_idx_{}, free_caches_{caches},
-#ifndef NDEBUG
-		handles_{},
-#endif // NDEBUG
-		index_{idx}, exists_{false}
-	{
-		comps_idx_.fill(-1);
-	}
+	Entity(Comps&, Caches&, std::size_t);
 
 	Entity(Entity const&) = delete;
 	Entity& operator=(Entity const&) = delete;
 
-	Entity(Entity&& mv) noexcept : comps_{mv.comps_}, comps_idx_{std::move(mv.comps_idx_)},
-		free_caches_{mv.free_caches_},
-#ifndef NDEBUG
-		handles_{std::move(mv.handles_)},
-#endif // NDEBUG
-		index_{mv.index_}, exists_{mv.exists_}
-	{
-		mv.exists_ = false;
-	}
+	Entity(Entity&&) noexcept;
 
-	~Entity()
-	{
-		if (exists_)
-			destroy();
-	}
+	~Entity();
 
 	template <typename... Ts>
-	void create(TypeList<Ts...> types)
-	{
-		assert(!exists_ && "Entity already exists");
-		
-		(void)expand
-		{(
-			assign_comp_(impl::get<CompVec<Ts>>(comps_), impl::Tuple<>{}, types)
-			, 0
-		)...};
-		exists_ = true;
-	}
-
+	void create(TypeList<Ts...>);
 	template <typename... Ts, typename... Args>
-	void create(TypeList<Ts...> types, Args&&... args)
-	{
-		assert(!exists_ && "Entity already exists");
-	
-		(void)expand
-		{(
-			assign_comp_(impl::get<CompVec<Ts>>(comps_), std::forward<Args>(args), types), 0
-		)...};
-		exists_ = true;
-	}
+	void create(TypeList<Ts...>, Args&&...);
 
-	void destroy()
-	{
-		assert(exists_ && "Entity doesn't exists");
-#ifndef NDEBUG	
-		invalidate_handles();
-#endif
+	void destroy();
 
-		auto it = std::begin(comps_idx_);
-		(void)expand
-		{(
-			*it != -1 ? (void)((impl::get<CompVec<C>>(comps_)[static_cast<std::size_t>(*it)] = boost::none)
-			          , free_caches_[impl::index_of<C, C...>()+1].emplace_back(*it++))
-			          : (void)++it, 0
-		)...};
-		std::fill(std::begin(comps_idx_), std::end(comps_idx_), -1);
-		exists_ = false;
-		free_caches_[0].emplace_back(index_);
-	}
-
-	operator bool() const noexcept
-	{
-		return exists_;
-	}
-
-	bool operator!() const noexcept
-	{
-		return !exists_;
-	}
+	operator bool() const noexcept;
+	bool operator!() const noexcept;
 
 	template <typename T>
-	T& get_component() noexcept
-	{
-		auto idx = comps_idx_[impl::index_of<T, C...>()];
-		assert(exists_ && "Entity doesn't exists");
-		assert((idx != -1) && "Entity doesn't have this component");
-		
-		return impl::get<CompVec<T>>(comps_)[static_cast<std::size_t>(idx)].get();
-	}
-	
+	T& get_component() noexcept;
 	template <typename T>
-	std::enable_if_t<!std::is_pointer<T>{}, T> const& get_component() const noexcept
-	{
-		auto idx = comps_idx_[impl::index_of<T, C...>()];
-		assert(exists_ && "Entity doesn't exists");
-		assert((idx != -1) && "Entity doesn't have this component");
-
-		return impl::get<CompVec<T>>(comps_)[static_cast<std::size_t>(idx)].get();
-	}
-
+	std::enable_if_t<!std::is_pointer<T>{}, T> const& get_component() const noexcept;
 	template <typename P>
 	std::enable_if_t<std::is_pointer<P>{}, std::remove_pointer_t<P>> const* const&
-		get_pointer() const noexcept
-	{
-		auto idx = comps_idx_[impl::index_of<P, C...>()];
-		assert(exists_ && "Entity doesn't exists");
-		assert((idx != -1) && "Entity doesn't have this component");
-
-		using T = std::remove_pointer_t<P>;
-
-		return *const_cast<T const**>(&impl::get<CompVec<P>>(comps_)[static_cast<std::size_t>(idx)].get());
-	}
+		get_pointer() const noexcept;
 
 	template <typename... Ts>
-	bool has_components() const noexcept
-	{
-		assert(exists_ && "Entity doesn't exists");
-		
-		for (auto i : {impl::index_of<Ts, C...>()...})
-		{
-			if (comps_idx_[i] == -1)
-				return false;
-		}
-		return true;
-	}
+	bool has_components() const noexcept;
 
 	template <typename T, typename... Args>
-	void add_component(Args&&... args)
-	{
-		assert(exists_ && "Entity doesn't exists");
-#ifndef NDEBUG
-		assert((comps_idx_[impl::index_of<T, C...>()] == -1) && "Entity already has this component");
-#endif
-		
-		assign_comp_(impl::get<CompVec<T>>(comps_), mantra::forward_as_tuple(std::forward<Args>(args)...),
-		             TypeList<T>{});
-	}
-
+	void add_component(Args&&...);
 	template <typename... Ts>
-	void add_components()
-	{
-		assert(exists_ && "Entity doesn't exists");
-#ifndef NDEBUG	
-		(void)expand
-		{(
-			assert((comps_idx_[impl::index_of<Ts, C...>()] == -1) && "Entity already has this component"), 0
-		)...};
-#endif
-		(void)expand
-		{(
-			assign_comp_(impl::get<CompVec<Ts>>(comps_), impl::Tuple<>{}, TypeList<Ts...>{})
-			, 0
-		)...};
-	}
-
+	void add_components();
 	template <typename... Ts, typename... Args>
-	void add_components(Args&&... args)
-	{
-		assert(exists_ && "Entity doesn't exists");
-#ifndef NDEBUG	
-		(void)expand
-		{(
-			assert((comps_idx_[impl::index_of<Ts, C...>()] == -1) && "Entity already has this component"), 0
-		)...};
-#endif
-		
-		(void)expand
-		{(
-			assign_comp_(impl::get<CompVec<Ts>>(comps_), std::forward<Args>(args), TypeList<Ts...>{}), 0
-		)...};
-	}
-
+	void add_components(Args&&...);
+	
 	template <typename... Ts>
-	void remove_components()
-	{
-		assert(exists_ && "Entity doesn't exists");
-#ifndef NDEBUG
-		(void)expand
-		{(
-			assert((comps_idx_[impl::index_of<Ts, C...>()] != -1) && "Entity doesn't have this component"), 0
-		)...};
-#endif
-		
-		(void)expand
-		{(
-			impl::get<CompVec<Ts>>(comps_)
-				[static_cast<std::size_t>(comps_idx_[impl::index_of<Ts, C...>()])] = boost::none,
-			free_caches_[impl::index_of<Ts, C...>()+1].emplace_back(comps_idx_[impl::index_of<Ts, C...>()]),
-			comps_idx_[impl::index_of<Ts, C...>()] = -1, 0
-		)...};
-	}
+	void remove_components();
 	
 #ifndef NDEBUG
-	void add_handle(DebugHandle<TypeList<C...>>* handle)
-	{
-		handles_.emplace_back(handle);
-	}
-
-	void remove_handle(DebugHandle<TypeList<C...>>* handle)
-	{
-		handles_.erase(std::remove(std::begin(handles_), std::end(handles_), handle), std::end(handles_));
-	}
-
-	void invalidate_handles() noexcept
-	{
-		for (auto elem : handles_)
-			elem->invalidate_();
-		handles_.clear();
-	}
+	void add_handle(DebugHandle<TypeList<C...>>*);
+	void remove_handle(DebugHandle<TypeList<C...>>*);
+	void invalidate_handles() noexcept;
 #endif // NDEBUG
 
 	private:
 	template <typename T, typename Tuple, typename... Ts>
-	void assign_comp_(CompVec<T>& comps, Tuple&& args, TypeList<Ts...>)
-	{
-		auto it = std::begin(comps);
-		if (!free_caches_[impl::index_of<T, C...>()+1].empty())
-		{
-			auto index = free_caches_[impl::index_of<T, C...>()+1].back();
-			free_caches_[impl::index_of<T, C...>()+1].pop_back();
-			it += static_cast<std::ptrdiff_t>(index);
-		}
-		else
-		{
-			it = std::find_if(std::begin(comps), std::end(comps),
-			                  [](auto const& e){return !e;});
-			if (it == std::end(comps))
-			{
-				comps.emplace_back();
-				it = std::end(comps) - 1;
-			}
-		}
-		invoke([it](auto&&... a){it->emplace(std::forward<decltype(a)>(a)...);},
-		       std::forward<Tuple>(args));
-		comps_idx_[impl::index_of<T, C...>()] = it - std::begin(comps);
-	}
+	void assign_comp_(CompVec<T>&, Tuple&&, TypeList<Ts...>);
 
 	Comps& comps_;
 	std::array<long, sizeof...(C)> comps_idx_;
@@ -370,5 +151,7 @@ class Entity
 } // namespace impl
 
 } // namespace mantra
+
+#include "EntityImpl.hpp"
 
 #endif // Header guard

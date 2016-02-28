@@ -60,6 +60,15 @@ struct is_any<T, First, Others...>
 	: std::integral_constant<bool, std::is_same<T, First>{} || is_any<T, Others...>{}>
 {};
 
+template <typename...>
+struct conjunction : std::true_type {};
+
+template <typename B>
+struct conjunction<B> : B {};
+
+template <typename B1, typename... Bs>
+struct conjunction<B1, Bs...> : std::conditional_t<B1::value, conjunction<Bs...>, B1> {};
+
 template <typename, typename...>
 struct IndexedTypeImpl;
 
@@ -75,13 +84,13 @@ template <typename... Ts>
 using IndexedType = IndexedTypeImpl<std::make_index_sequence<sizeof...(Ts)>, Ts...>;
 
 template <typename T, std::size_t I>
-std::size_t constexpr index_of_impl(IndexedTypeBase<I, T>) noexcept
+constexpr std::size_t index_of_impl(IndexedTypeBase<I, T>) noexcept
 {
 	return I;
 }
 
 template <typename T, typename... Ts>
-std::size_t constexpr index_of() noexcept
+constexpr std::size_t index_of() noexcept
 {
 	return index_of_impl<T>(IndexedType<Ts...>{});
 }
@@ -101,10 +110,17 @@ struct TypeList : private identity<Ts>... // Supplied same type multiple times
 {
 	static_assert(sizeof...(Ts) > 0, "No types supplied");
 
-	template <typename T>
-	bool constexpr contains() const noexcept
+	template <typename... Us>
+	constexpr bool contains() const noexcept
 	{
-		return std::is_base_of<identity<T>, TypeList>{};
+		// TODO : Replace this with a fold-expression when C++17 is out
+		return conjunction<std::is_base_of<identity<Us>, TypeList>...>{};
+	}
+
+	template <typename... Us>
+	constexpr bool contains_exactly() const noexcept
+	{
+		return sizeof...(Ts) == sizeof...(Us) && contains<Us...>();
 	}
 };
 
@@ -129,7 +145,8 @@ struct TupleItem
 	template <typename U>
 	constexpr TupleItem(U&& init) : item{std::forward<U>(init)} {}
 	template <template <typename...> class Tp, typename... Us>
-	constexpr TupleItem(piecewise_construct_t, Tp<Us...> init) : item{get<Us>(init)...} {}
+	constexpr TupleItem(piecewise_construct_t, Tp<Us...>&& init)
+		: item{get<Us>(std::forward<Tp<Us...>>(init))...} {}
 
 	TupleItem(TupleItem const&) = default;
 	TupleItem& operator=(TupleItem const&) = default;
@@ -159,6 +176,11 @@ struct Tuple : public TupleItem<Ts>...
 	Tuple& operator=(Tuple&&) = default;
 
 	~Tuple() = default;
+
+	constexpr bool size() const noexcept
+	{
+		return sizeof...(Ts);
+	}
 };
 
 template <typename T, typename... Ts>
@@ -197,50 +219,22 @@ constexpr TypeOf<I, Ts...> const& get(Tuple<Ts...> const& tuple) noexcept
 	return static_cast<TupleItem<TypeOf<I, Ts...>> const&>(tuple).item;
 }
 
-template <std::size_t, typename>
-struct tuple_element;
-
-template <typename T>
-struct tuple_size;
-
-template <typename... Ts>
-struct tuple_size<Tuple<Ts...>> : std::integral_constant<std::size_t, sizeof...(Ts)> {};
-
-template <typename T>
-struct tuple_size<T const> : public std::integral_constant<std::size_t, tuple_size<T>{}> {};
-
-template <typename T>
-struct tuple_size<T volatile> : public std::integral_constant<std::size_t, tuple_size<T>{}> {};
-
-template <typename T>
-struct tuple_size<T const volatile> : public std::integral_constant<std::size_t, tuple_size<T>{}> {};
-
-template <typename F, typename T, std::size_t... I>
-decltype(auto) invoke_helper(F&& f, T&& t, std::index_sequence<I...>)
+template <typename F, template <typename...> class T, typename... Us>
+decltype(auto) invoke(F&& f, T<Us...>&& t)
 {
-	return f(get<I>(std::forward<T>(t))...);
-}
-
-template <typename F, typename T>
-decltype(auto) invoke(F&& f, T&& t)
-{
-	auto constexpr S = tuple_size<std::decay_t<T>>{};
-	return invoke_helper(std::forward<F>(f), std::forward<T>(t), std::make_index_sequence<S>{});
+	return f(get<Us>(std::forward<T<Us...>>(t))...);
 }
 
 template <typename T, typename... C>
-void constexpr validate_component(TypeList<C...> c) noexcept
+constexpr void validate_component(TypeList<C...> c) noexcept
 {
 	static_assert(c.template contains<T>(), "Invalid component type");
 }
 
 template <typename... C, typename... T>
-void constexpr validate_components(TypeList<C...> c, TypeList<T...>) noexcept
+constexpr void validate_components(TypeList<C...> c, TypeList<T...>) noexcept
 {
-	(void)expand
-	{(
-		validate_component<T, C...>(c), 0
-	)...};
+	static_assert(c.template contains<T...>(), "Invalid component type");
 }
 
 template <typename... Ts>

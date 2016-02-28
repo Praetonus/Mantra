@@ -30,8 +30,8 @@
  * knowledge of the CeCILL-B license and that you accept its terms.
  *****/
 
-#ifndef MANTRA_IMPL_ENTITYHANDLE_HPP
-#define MANTRA_IMPL_ENTITYHANDLE_HPP
+#ifndef MANTRA_IMPL_ENTITYHANDLEIMPL_HPP
+#define MANTRA_IMPL_ENTITYHANDLEIMPL_HPP
 
 #include "../EntityHandle.hpp"
 

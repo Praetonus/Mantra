@@ -221,6 +221,6 @@ auto create_world(ComponentList<C...>, SystemList<S...>, Args&&... args)
 
 } // namespace mantra
 
-#include "impl/World.hpp"
+#include "impl/WorldImpl.hpp"
 
 #endif // Header guard

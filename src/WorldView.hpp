@@ -214,6 +214,6 @@ class WorldView final
 
 } // namespace mantra
 
-#include "impl/WorldView.hpp"
+#include "impl/WorldViewImpl.hpp"
 
 #endif // Header guard

@@ -31,8 +31,8 @@
  *****/
 
 
-#ifndef MANTRA_IMPL_WORLD_HPP
-#define MANTRA_IMPL_WORLD_HPP
+#ifndef MANTRA_IMPL_WORLDIMPL_HPP
+#define MANTRA_IMPL_WORLDIMPL_HPP
 
 #include "../World.hpp"
 

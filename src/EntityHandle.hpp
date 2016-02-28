@@ -229,6 +229,6 @@ class EntityHandle final
 
 } // namespace mantra
 
-#include "impl/EntityHandle.hpp"
+#include "impl/EntityHandleImpl.hpp"
 
 #endif // Header guard
